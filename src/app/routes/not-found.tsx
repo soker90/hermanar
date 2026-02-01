@@ -1,32 +1,32 @@
 import { Button } from '@/components/ui/button'
-import {
-    ErrorView,
-    ErrorHeader,
-    ErrorDescription,
-    ErrorActions
-} from '@/features/errors/error-base'
 import { useNavigate } from 'react-router'
 
 export default function NotFoundErrorPage() {
     const navigate = useNavigate()
     return (
-        <ErrorView>
-            <ErrorHeader>Page not found</ErrorHeader>
-            <ErrorDescription>
-                Sorry, we couldn’t find the page you’re looking for.
-            </ErrorDescription>
-            <ErrorActions>
-                <Button size="lg" onClick={() => navigate(-1)}>
-                    Go back
-                </Button>
-                <Button size="lg" variant="ghost">
-                    Contact support{' '}
-                    <span aria-hidden="true" className="ml-1">
-                        &rarr;
-                    </span>
-                </Button>
-            </ErrorActions>
-        </ErrorView>
+        <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="text-center space-y-4 max-w-md">
+                <h1 className="text-6xl font-bold text-gray-900">404</h1>
+                <h2 className="text-2xl font-semibold text-gray-700">
+                    Página no encontrada
+                </h2>
+                <p className="text-gray-600">
+                    Lo sentimos, no pudimos encontrar la página que buscas.
+                </p>
+                <div className="flex gap-4 justify-center pt-4">
+                    <Button size="lg" onClick={() => navigate(-1)}>
+                        Volver atrás
+                    </Button>
+                    <Button
+                        size="lg"
+                        variant="ghost"
+                        onClick={() => navigate('/')}
+                    >
+                        Ir al inicio
+                    </Button>
+                </div>
+            </div>
+        </div>
     )
 }
 
