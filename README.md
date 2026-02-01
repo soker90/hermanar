@@ -68,7 +68,7 @@ Hermanar es una aplicación de escritorio multiplataforma diseñada para facilit
 
 ### Descarga Directa
 
-Descarga la última versión desde la [página de releases](https://github.com/tu-usuario/hermanar2/releases):
+Descarga la última versión desde la [página de releases](https://github.com/tu-usuario/hermanar/releases):
 
 - **Windows**: `Hermanar_x.x.x_x64-setup.exe`
 - **Linux**: `hermanar_x.x.x_amd64.AppImage` o `.deb`
@@ -94,8 +94,8 @@ Descarga la última versión desde la [página de releases](https://github.com/t
 1. **Clonar el repositorio**
 
     ```bash
-    git clone https://github.com/tu-usuario/hermanar2.git
-    cd hermanar2
+    git clone https://github.com/tu-usuario/hermanar.git
+    cd hermanar
     ```
 
 2. **Instalar dependencias**
@@ -169,7 +169,7 @@ pnpm tauri build --target x86_64-apple-darwin
 ## 📁 Estructura del Proyecto
 
 ```
-hermanar2/
+hermanar/
 ├── src/                      # Código frontend
 │   ├── app/
 │   │   ├── routes/          # Rutas de la aplicación
@@ -249,7 +249,7 @@ La aplicación utiliza SQLite para almacenar todos los datos de forma local. La 
 
 ## 🐛 Reporte de Errores
 
-Si encuentras un error, por favor [abre un issue](https://github.com/tu-usuario/hermanar2/issues) con:
+Si encuentras un error, por favor [abre un issue](https://github.com/tu-usuario/hermanar/issues) con:
 
 - Descripción detallada del problema
 - Pasos para reproducirlo

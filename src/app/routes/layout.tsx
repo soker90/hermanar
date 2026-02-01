@@ -3,6 +3,7 @@ import { Users, Building2, Euro, Home, Menu, X } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router'
 import { invoke } from '@tauri-apps/api/core'
+import { UpdateChecker } from '@/components/update-checker'
 
 export function Component() {
     const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -146,6 +147,9 @@ export function Component() {
                     <Outlet />
                 </main>
             </div>
+
+            {/* Update notification */}
+            <UpdateChecker />
         </div>
     )
 }
