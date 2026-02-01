@@ -15,8 +15,14 @@ export function HomePage() {
     const loadStats = async () => {
         try {
             const [hermanos, cuotasStats] = await Promise.all([
-                invoke<any[]>('get_all_hermanos_cmd'),
-                invoke<any>('get_estadisticas_cuotas_cmd', {
+                invoke<Array<{ activo: boolean }>>('get_all_hermanos_cmd'),
+                invoke<{
+                    total_recaudado: number
+                    cuotas_pendientes: number
+                    cuotas_pagadas: number
+                    hermanos_al_dia: number
+                    hermanos_morosos: number
+                }>('get_estadisticas_cuotas_cmd', {
                     anio: new Date().getFullYear()
                 })
             ])
@@ -54,9 +60,9 @@ export function HomePage() {
             </div>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                <Card className="bg-gradient-to-br from-blue-50 to-blue-100">
+                <Card className="bg-linear-to-br from-blue-50 to-blue-100">
                     <div className="flex items-center">
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                             <Users className="h-10 w-10 text-blue-600" />
                         </div>
                         <div className="ml-4">
@@ -70,9 +76,9 @@ export function HomePage() {
                     </div>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-green-50 to-green-100">
+                <Card className="bg-linear-to-br from-green-50 to-green-100">
                     <div className="flex items-center">
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                             <CheckCircle className="h-10 w-10 text-green-600" />
                         </div>
                         <div className="ml-4">
@@ -86,9 +92,9 @@ export function HomePage() {
                     </div>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-purple-50 to-purple-100">
+                <Card className="bg-linear-to-br from-purple-50 to-purple-100">
                     <div className="flex items-center">
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                             <Building2 className="h-10 w-10 text-purple-600" />
                         </div>
                         <div className="ml-4">
@@ -102,9 +108,9 @@ export function HomePage() {
                     </div>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-orange-50 to-orange-100">
+                <Card className="bg-linear-to-br from-orange-50 to-orange-100">
                     <div className="flex items-center">
-                        <div className="flex-shrink-0">
+                        <div className="shrink-0">
                             <Euro className="h-10 w-10 text-orange-600" />
                         </div>
                         <div className="ml-4">

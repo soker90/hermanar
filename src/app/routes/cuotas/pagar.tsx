@@ -491,10 +491,10 @@ export function Component() {
                                             type="checkbox"
                                             checked={isSelected}
                                             onChange={() => {}}
-                                            className="h-5 w-5 flex-shrink-0"
+                                            className="h-5 w-5 shrink-0"
                                         />
                                         <div className="flex items-center gap-6 flex-1 min-w-0">
-                                            <div className="min-w-[200px]">
+                                            <div className="min-w-50">
                                                 <div className="font-semibold text-lg">
                                                     {cf.familia_nombre}
                                                 </div>
@@ -507,7 +507,7 @@ export function Component() {
                                                 </div>
                                             </div>
                                             {cf.direccion && (
-                                                <div className="text-sm text-gray-600 flex items-center gap-1 min-w-[200px]">
+                                                <div className="text-sm text-gray-600 flex items-center gap-1 min-w-50">
                                                     <span>📍</span>
                                                     <span className="truncate">
                                                         {cf.direccion}
@@ -518,12 +518,12 @@ export function Component() {
                                                 </div>
                                             )}
                                             {cf.telefono && (
-                                                <div className="text-sm text-gray-600 flex items-center gap-1 min-w-[120px]">
+                                                <div className="text-sm text-gray-600 flex items-center gap-1 min-w-30">
                                                     <span>📞</span>
                                                     <span>{cf.telefono}</span>
                                                 </div>
                                             )}
-                                            <div className="ml-auto text-right flex-shrink-0">
+                                            <div className="ml-auto text-right shrink-0">
                                                 <div className="text-2xl font-bold">
                                                     {cf.total_importe.toFixed(
                                                         2
@@ -539,7 +539,7 @@ export function Component() {
                                                 e.stopPropagation()
                                                 toggleFamiliaExpanded(id)
                                             }}
-                                            className="flex-shrink-0"
+                                            className="shrink-0"
                                         >
                                             {isExpanded ? (
                                                 <ChevronUp className="h-5 w-5" />
@@ -633,7 +633,7 @@ export function Component() {
                                             type="checkbox"
                                             checked={isSelected}
                                             onChange={() => {}}
-                                            className="h-5 w-5 flex-shrink-0"
+                                            className="h-5 w-5 shrink-0"
                                         />
                                         {(() => {
                                             const hermano = hermanos.find(
@@ -641,7 +641,7 @@ export function Component() {
                                             )
                                             return (
                                                 <div className="flex items-center gap-6 flex-1 min-w-0">
-                                                    <div className="min-w-[200px]">
+                                                    <div className="min-w-50">
                                                         <div className="font-semibold">
                                                             {getHermanoName(
                                                                 cuota.hermano_id
@@ -656,7 +656,7 @@ export function Component() {
                                                         </div>
                                                     </div>
                                                     {hermano?.direccion && (
-                                                        <div className="text-sm text-gray-600 flex items-center gap-1 min-w-[200px]">
+                                                        <div className="text-sm text-gray-600 flex items-center gap-1 min-w-50">
                                                             <span>📍</span>
                                                             <span className="truncate">
                                                                 {
@@ -669,7 +669,7 @@ export function Component() {
                                                         </div>
                                                     )}
                                                     {hermano?.telefono && (
-                                                        <div className="text-sm text-gray-600 flex items-center gap-1 min-w-[120px]">
+                                                        <div className="text-sm text-gray-600 flex items-center gap-1 min-w-30">
                                                             <span>📞</span>
                                                             <span>
                                                                 {
@@ -678,7 +678,7 @@ export function Component() {
                                                             </span>
                                                         </div>
                                                     )}
-                                                    <div className="ml-auto text-right flex-shrink-0">
+                                                    <div className="ml-auto text-right shrink-0">
                                                         <div className="text-xl font-bold">
                                                             {cuota.importe.toFixed(
                                                                 2
