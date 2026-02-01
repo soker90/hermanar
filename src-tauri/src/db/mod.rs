@@ -20,8 +20,8 @@ pub use familias::{
 };
 pub use cuotas::{
     get_all_cuotas, get_cuotas_by_hermano, get_cuotas_by_year, get_cuotas_pendientes,
-    create_cuota, update_cuota, delete_cuota, marcar_cuota_pagada,
-    generar_cuotas_trimestre, get_estadisticas_cuotas
+    create_cuota, update_cuota, delete_cuota, marcar_cuota_pagada, pagar_cuotas_familia,
+    generar_cuotas_anio, get_estadisticas_cuotas
 };
 
 // Tipos compartidos
@@ -86,7 +86,6 @@ pub struct Cuota {
     pub id: Option<i32>,
     pub hermano_id: i32,
     pub anio: i32,
-    pub trimestre: i32,
     pub importe: f64,
     pub pagado: bool,
     pub fecha_pago: Option<String>,
@@ -190,7 +189,6 @@ fn create_tables(conn: &Connection) -> Result<(), anyhow::Error> {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             hermano_id INTEGER NOT NULL,
             anio INTEGER NOT NULL,
-            trimestre INTEGER NOT NULL CHECK(trimestre >= 1 AND trimestre <= 4),
             importe REAL NOT NULL,
             pagado BOOLEAN NOT NULL DEFAULT 0,
             fecha_pago TEXT,
@@ -199,7 +197,7 @@ fn create_tables(conn: &Connection) -> Result<(), anyhow::Error> {
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (hermano_id) REFERENCES hermanos (id) ON DELETE CASCADE,
-            UNIQUE(hermano_id, anio, trimestre)
+            UNIQUE(hermano_id, anio)
         )",
         [],
     )?;

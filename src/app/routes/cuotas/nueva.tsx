@@ -23,7 +23,6 @@ export function Component() {
     const [formData, setFormData] = useState({
         hermano_id: 0,
         anio: new Date().getFullYear(),
-        trimestre: 1,
         importe: 50,
         pagado: false,
         fecha_pago: '',
@@ -207,8 +206,8 @@ export function Component() {
                             })
                         }
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Notas adicionales..."
+                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-2 focus:border-blue-500"
+                        placeholder="Observaciones adicionales..."
                     />
                 </div>
 

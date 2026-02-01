@@ -13,6 +13,8 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(db)
         .invoke_handler(tauri::generate_handler![
+            // Comandos generales
+            get_app_version,
             // Comandos de hermanos
             get_all_hermanos_cmd,
             get_hermanos_activos_cmd,
@@ -44,8 +46,9 @@ pub fn run() {
             create_cuota_cmd,
             update_cuota_cmd,
             marcar_cuota_pagada_cmd,
+            pagar_cuotas_familia_cmd,
             delete_cuota_cmd,
-            generar_cuotas_trimestre_cmd,
+            generar_cuotas_anio_cmd,
             get_estadisticas_cuotas_cmd,
         ])
         .run(tauri::generate_context!())

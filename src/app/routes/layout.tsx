@@ -1,11 +1,17 @@
 import { Outlet } from 'react-router'
 import { Users, Building2, Euro, Home, Menu, X } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router'
+import { invoke } from '@tauri-apps/api/core'
 
 export function Component() {
     const [sidebarOpen, setSidebarOpen] = useState(false)
+    const [version, setVersion] = useState('...')
     const location = useLocation()
+
+    useEffect(() => {
+        invoke<string>('get_app_version').then(setVersion).catch(console.error)
+    }, [])
 
     const navigation = [
         {
@@ -109,7 +115,7 @@ export function Component() {
                             Sistema de Gestión de Hermandades
                         </div>
                         <div className="text-xs text-gray-400 text-center mt-1">
-                            v0.1.0
+                            v{version}
                         </div>
                     </div>
                 </div>

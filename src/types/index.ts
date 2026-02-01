@@ -83,11 +83,10 @@ export interface Cuota extends Record<string, unknown> {
     id?: number
     hermano_id: number
     anio: number
-    trimestre: number // 1, 2, 3, 4
     importe: number
     pagado: boolean
     fecha_pago?: string // ISO format YYYY-MM-DD
-    metodo_pago?: 'efectivo' | 'transferencia' | 'domiciliacion'
+    metodo_pago?: 'efectivo' | 'transferencia' | 'domiciliacion' | 'bizum'
     observaciones?: string
     created_at?: string
     updated_at?: string

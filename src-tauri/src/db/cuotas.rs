@@ -7,14 +7,13 @@ impl Cuota {
             id: Some(row.get(0)?),
             hermano_id: row.get(1)?,
             anio: row.get(2)?,
-            trimestre: row.get(3)?,
-            importe: row.get(4)?,
-            pagado: row.get(5)?,
-            fecha_pago: row.get(6)?,
-            metodo_pago: row.get(7)?,
-            observaciones: row.get(8)?,
-            created_at: row.get(9)?,
-            updated_at: row.get(10)?,
+            importe: row.get(3)?,
+            pagado: row.get(4)?,
+            fecha_pago: row.get(5)?,
+            metodo_pago: row.get(6)?,
+            observaciones: row.get(7)?,
+            created_at: row.get(8)?,
+            updated_at: row.get(9)?,
         })
     }
 }
@@ -22,10 +21,10 @@ impl Cuota {
 pub fn get_all_cuotas(db: &DbConnection) -> Result<Vec<Cuota>, anyhow::Error> {
     let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
-        "SELECT id, hermano_id, anio, trimestre, importe, pagado,
+        "SELECT id, hermano_id, anio, importe, pagado,
                 fecha_pago, metodo_pago, observaciones, created_at, updated_at
          FROM cuotas
-         ORDER BY anio DESC, trimestre DESC, hermano_id"
+         ORDER BY anio DESC, hermano_id"
     )?;
 
     let cuotas = stmt.query_map([], |row| {
@@ -39,11 +38,11 @@ pub fn get_all_cuotas(db: &DbConnection) -> Result<Vec<Cuota>, anyhow::Error> {
 pub fn get_cuotas_by_hermano(db: &DbConnection, hermano_id: i32) -> Result<Vec<Cuota>, anyhow::Error> {
     let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
-        "SELECT id, hermano_id, anio, trimestre, importe, pagado,
+        "SELECT id, hermano_id, anio, importe, pagado,
                 fecha_pago, metodo_pago, observaciones, created_at, updated_at
          FROM cuotas
          WHERE hermano_id = ?1
-         ORDER BY anio DESC, trimestre DESC"
+         ORDER BY anio DESC"
     )?;
 
     let cuotas = stmt.query_map([hermano_id], |row| {
@@ -57,11 +56,11 @@ pub fn get_cuotas_by_hermano(db: &DbConnection, hermano_id: i32) -> Result<Vec<C
 pub fn get_cuotas_by_year(db: &DbConnection, anio: i32) -> Result<Vec<Cuota>, anyhow::Error> {
     let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
-        "SELECT id, hermano_id, anio, trimestre, importe, pagado,
+        "SELECT id, hermano_id, anio, importe, pagado,
                 fecha_pago, metodo_pago, observaciones, created_at, updated_at
          FROM cuotas
          WHERE anio = ?1
-         ORDER BY trimestre, hermano_id"
+         ORDER BY hermano_id"
     )?;
 
     let cuotas = stmt.query_map([anio], |row| {
@@ -75,11 +74,11 @@ pub fn get_cuotas_by_year(db: &DbConnection, anio: i32) -> Result<Vec<Cuota>, an
 pub fn get_cuotas_pendientes(db: &DbConnection) -> Result<Vec<Cuota>, anyhow::Error> {
     let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
-        "SELECT id, hermano_id, anio, trimestre, importe, pagado,
+        "SELECT id, hermano_id, anio, importe, pagado,
                 fecha_pago, metodo_pago, observaciones, created_at, updated_at
          FROM cuotas
          WHERE pagado = 0
-         ORDER BY anio ASC, trimestre ASC, hermano_id"
+         ORDER BY anio ASC, hermano_id"
     )?;
 
     let cuotas = stmt.query_map([], |row| {
@@ -95,12 +94,11 @@ pub fn create_cuota(db: &DbConnection, cuota: &Cuota) -> Result<i32, anyhow::Err
 
     conn.execute(
         "INSERT INTO cuotas
-         (hermano_id, anio, trimestre, importe, pagado, fecha_pago, metodo_pago, observaciones)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+         (hermano_id, anio, importe, pagado, fecha_pago, metodo_pago, observaciones)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![
             cuota.hermano_id,
             cuota.anio,
-            cuota.trimestre,
             cuota.importe,
             cuota.pagado,
             cuota.fecha_pago,
@@ -117,14 +115,13 @@ pub fn update_cuota(db: &DbConnection, id: i32, cuota: &Cuota) -> Result<(), any
 
     conn.execute(
         "UPDATE cuotas
-         SET hermano_id = ?1, anio = ?2, trimestre = ?3, importe = ?4,
-             pagado = ?5, fecha_pago = ?6, metodo_pago = ?7,
-             observaciones = ?8, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?9",
+         SET hermano_id = ?1, anio = ?2, importe = ?3,
+             pagado = ?4, fecha_pago = ?5, metodo_pago = ?6,
+             observaciones = ?7, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?8",
         params![
             cuota.hermano_id,
             cuota.anio,
-            cuota.trimestre,
             cuota.importe,
             cuota.pagado,
             cuota.fecha_pago,
@@ -158,11 +155,7 @@ pub fn delete_cuota(db: &DbConnection, id: i32) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-pub fn generar_cuotas_trimestre(db: &DbConnection, anio: i32, trimestre: i32, importe: f64) -> Result<i32, anyhow::Error> {
-    if trimestre < 1 || trimestre > 4 {
-        return Err(anyhow::anyhow!("El trimestre debe estar entre 1 y 4"));
-    }
-
+pub fn generar_cuotas_anio(db: &DbConnection, anio: i32, importe: f64) -> Result<i32, anyhow::Error> {
     let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     let mut stmt = conn.prepare("SELECT id FROM hermanos WHERE activo = 1")?;
@@ -175,18 +168,18 @@ pub fn generar_cuotas_trimestre(db: &DbConnection, anio: i32, trimestre: i32, im
 
     for hermano_id in hermano_ids {
         let mut check_stmt = conn.prepare(
-            "SELECT COUNT(*) FROM cuotas WHERE hermano_id = ?1 AND anio = ?2 AND trimestre = ?3"
+            "SELECT COUNT(*) FROM cuotas WHERE hermano_id = ?1 AND anio = ?2"
         )?;
 
-        let existe: i32 = check_stmt.query_row(params![hermano_id, anio, trimestre], |row| {
+        let existe: i32 = check_stmt.query_row(params![hermano_id, anio], |row| {
             row.get(0)
         })?;
 
         if existe == 0 {
             conn.execute(
-                "INSERT INTO cuotas (hermano_id, anio, trimestre, importe, pagado)
-                 VALUES (?1, ?2, ?3, ?4, 0)",
-                params![hermano_id, anio, trimestre, importe],
+                "INSERT INTO cuotas (hermano_id, anio, importe, pagado)
+                 VALUES (?1, ?2, ?3, 0)",
+                params![hermano_id, anio, importe],
             )?;
             creadas += 1;
         }
@@ -266,4 +259,33 @@ pub fn get_estadisticas_cuotas(db: &DbConnection, anio: Option<i32>) -> Result<E
         hermanos_al_dia,
         hermanos_morosos,
     })
+}
+
+pub fn pagar_cuotas_familia(
+    db: &DbConnection,
+    familia_id: i32,
+    anio: i32,
+    fecha_pago: &str,
+    metodo_pago: &str
+) -> Result<i32, anyhow::Error> {
+    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+
+    // Primero obtenemos el nombre de la familia
+    let familia_nombre: String = conn.query_row(
+        "SELECT nombre_familia FROM familias WHERE id = ?1",
+        [familia_id],
+        |row| row.get(0)
+    )?;
+
+    let observacion = format!("Pagado con la familia {}", familia_nombre);
+
+    let cuotas_actualizadas = conn.execute(
+        "UPDATE cuotas
+         SET pagado = 1, fecha_pago = ?1, metodo_pago = ?2, observaciones = ?3, updated_at = CURRENT_TIMESTAMP
+         WHERE hermano_id IN (SELECT id FROM hermanos WHERE familia_id = ?4 AND activo = 1)
+         AND anio = ?5 AND pagado = 0",
+        params![fecha_pago, metodo_pago, observacion, familia_id, anio],
+    )?;
+
+    Ok(cuotas_actualizadas as i32)
 }

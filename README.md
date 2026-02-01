@@ -28,23 +28,33 @@ Hermanar es una aplicación de escritorio multiplataforma diseñada para facilit
 - ✅ Registro completo de hermanos con datos personales y de contacto
 - ✅ Control de estado (activo/inactivo)
 - ✅ Asignación a familias
-- ✅ Vista detallada de información individual
+- ✅ Vista detallada de información individual y cuotas asociadas
 - ✅ Búsqueda y filtrado avanzado
+- ✅ Datos completos: dirección, teléfono, email, información de bautismo
+- ✅ Gestión de autorizaciones para menores
 
 ### 🏠 Gestión de Familias
 
 - ✅ Organización de hermanos por unidades familiares
-- ✅ Dirección principal de contacto
-- ✅ Gestión de miembros de cada familia
+- ✅ Dirección principal configurable desde hermanos de la familia
+- ✅ Teléfono de contacto de la familia
+- ✅ Gestión de miembros: añadir y eliminar hermanos
+- ✅ Vista consolidada de información familiar
+- ✅ Validación: solo hermanos de la familia pueden ser dirección principal
 
 ### 💶 Gestión de Cuotas
 
-- ✅ Generación automática de cuotas anuales
-- ✅ Control de pagos y pendientes
-- ✅ Pago masivo de cuotas
+- ✅ Sistema de cuotas anuales (una cuota por hermano y año)
+- ✅ Generación automática de cuotas por año
+- ✅ Pago individual o familiar con un solo clic
+- ✅ Interfaz optimizada con datos en línea horizontal
+- ✅ Pago masivo de múltiples cuotas seleccionadas
+- ✅ Visualización de cuotas familiares con lista desplegable de hermanos incluidos
+- ✅ Múltiples métodos de pago: efectivo, transferencia, domiciliación, Bizum
+- ✅ Observaciones personalizables por cuota
 - ✅ Dashboard con estadísticas detalladas
-- ✅ Filtrado por año y estado de pago
-- ✅ Registro de método de pago y observaciones
+- ✅ Filtrado por año y búsqueda por hermano
+- ✅ Visualización de dirección y teléfono en pantalla de pagos
 
 ### 📊 Panel de Control
 
@@ -52,6 +62,7 @@ Hermanar es una aplicación de escritorio multiplataforma diseñada para facilit
 - ✅ Resumen de hermanos activos/inactivos
 - ✅ Métricas de cuotas del año actual
 - ✅ Porcentaje de recaudación
+- ✅ Total de familias registradas
 
 ## 🚀 Instalación
 
@@ -212,15 +223,22 @@ pnpm type-check       # Verifica tipos TypeScript
 
 La aplicación utiliza SQLite para almacenar todos los datos de forma local. La base de datos se crea automáticamente en la primera ejecución y se almacena en:
 
-- **Windows**: `%APPDATA%\com.hermanar.app\hermanar.db`
-- **Linux**: `~/.local/share/com.hermanar.app/hermanar.db`
-- **macOS**: `~/Library/Application Support/com.hermanar.app/hermanar.db`
+- **Windows**: `%APPDATA%\hermanar\hermanar.db`
+- **Linux**: `~/.local/share/hermanar/hermanar.db`
+- **macOS**: `~/Library/Application Support/hermanar/hermanar.db`
 
 ### Esquema de Base de Datos
 
-- **hermanos**: Información de hermanos
-- **familias**: Grupos familiares
-- **cuotas**: Registro de cuotas y pagos
+- **hermanos**: Información completa de hermanos (datos personales, contacto, bautismo)
+- **familias**: Grupos familiares con dirección y teléfono principal
+- **cuotas**: Registro de cuotas anuales y pagos con método de pago y observaciones
+
+### Características de los Datos
+
+- Cuotas únicas por hermano y año (restricción UNIQUE)
+- Relaciones entre hermanos y familias
+- Dirección principal de familia vinculada a un hermano específico
+- Observaciones por cuota (campo unificado)
 
 ## 🔒 Seguridad y Privacidad
 

@@ -1,44 +1,19 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
 import { useNavigate } from 'react-router'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useToastContext } from '@/contexts/toast-context'
-
-interface Hermano {
-    id?: number
-    nombre: string
-    apellidos: string
-    direccion?: string
-    familia_id?: number
-}
 
 export function Component() {
     const navigate = useNavigate()
     const toast = useToastContext()
     const [loading, setLoading] = useState(false)
-    const [hermanos, setHermanos] = useState<Hermano[]>([])
     const [formData, setFormData] = useState({
         nombre_familia: '',
         hermano_direccion_id: undefined as number | undefined
     })
-
-    useEffect(() => {
-        const loadHermanos = async () => {
-            try {
-                const data = await invoke<Hermano[]>('get_all_hermanos_cmd')
-                // Filtrar hermanos sin familia o activos
-                const disponibles = data.filter((h) => !h.familia_id)
-                setHermanos(disponibles)
-            } catch (error) {
-                console.error('Error loading hermanos:', error)
-            }
-        }
-
-        loadHermanos()
-    }, [])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -47,7 +22,7 @@ export function Component() {
         try {
             const dataToSend = {
                 nombre_familia: formData.nombre_familia,
-                hermano_direccion_id: formData.hermano_direccion_id || null
+                hermano_direccion_id: null
             }
 
             await invoke('create_familia_cmd', { familia: dataToSend })
@@ -81,26 +56,10 @@ export function Component() {
                     helperText="Nombre identificativo de la familia"
                 />
 
-                <Select
-                    label="Hermano con Dirección Principal"
-                    value={formData.hermano_direccion_id?.toString() || ''}
-                    onChange={(e) =>
-                        setFormData({
-                            ...formData,
-                            hermano_direccion_id: e.target.value
-                                ? Number(e.target.value)
-                                : undefined
-                        })
-                    }
-                    options={[
-                        { value: '', label: 'No configurada' },
-                        ...hermanos.map((h) => ({
-                            value: h.id!.toString(),
-                            label: `${h.nombre} ${h.apellidos}${h.direccion ? ` - ${h.direccion}` : ''}`
-                        }))
-                    ]}
-                    helperText="Selecciona el hermano cuya dirección será la principal de la familia"
-                />
+                <p className="text-sm text-gray-600">
+                    Después de crear la familia, podrás añadirle hermanos y
+                    configurar la dirección principal.
+                </p>
 
                 <div className="flex gap-4 justify-end">
                     <Button

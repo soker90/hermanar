@@ -12,7 +12,7 @@ interface GenerarCuotasProps {
 
 export function GenerarCuotas({ onCuotasGenerated }: GenerarCuotasProps) {
     const [anio, setAnio] = useState(new Date().getFullYear())
-    const [importe, setImporte] = useState(50)
+    const [importe, setImporte] = useState(5)
     const [isGenerating, setIsGenerating] = useState(false)
     const [showConfirmModal, setShowConfirmModal] = useState(false)
     const [resultado, setResultado] = useState<{
@@ -47,12 +47,10 @@ export function GenerarCuotas({ onCuotasGenerated }: GenerarCuotasProps) {
         setResultado(null)
 
         try {
-            // Para cuotas anuales usamos trimestre 1
             const cuotasCreadas = await invoke<number>(
-                'generar_cuotas_trimestre_cmd',
+                'generar_cuotas_anio_cmd',
                 {
                     anio,
-                    trimestre: 1,
                     importe
                 }
             )

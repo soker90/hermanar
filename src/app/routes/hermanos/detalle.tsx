@@ -23,7 +23,6 @@ interface Cuota extends Record<string, unknown> {
     id: number
     hermano_id: number
     anio: number
-    trimestre: number
     importe: number
     pagado: boolean
     fecha_pago?: string
@@ -108,11 +107,6 @@ export function Component() {
             render: (value) => String(value)
         },
         {
-            key: 'trimestre',
-            label: 'Trimestre',
-            render: (value) => `${value}º Trimestre`
-        },
-        {
             key: 'importe',
             label: 'Importe',
             render: (value) => `${Number(value).toFixed(2)} €`
@@ -141,6 +135,20 @@ export function Component() {
             key: 'metodo_pago',
             label: 'Método de Pago',
             render: (value) => (value as string) || '-'
+        },
+        {
+            key: 'observaciones',
+            label: 'Observaciones',
+            render: (value) => {
+                if (value) {
+                    return (
+                        <span className="text-xs text-blue-600">
+                            {value as string}
+                        </span>
+                    )
+                }
+                return '-'
+            }
         }
     ]
 

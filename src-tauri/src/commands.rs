@@ -6,12 +6,18 @@ use crate::db::{
     get_all_familias, get_familia_by_id, search_familias, create_familia,
     update_familia, delete_familia, get_familia_stats, get_familia_with_hermanos, get_familia_with_address,
     get_all_cuotas, get_cuotas_by_hermano, get_cuotas_by_year, get_cuotas_pendientes,
-    create_cuota, update_cuota, delete_cuota, marcar_cuota_pagada,
-    generar_cuotas_trimestre, get_estadisticas_cuotas
+    create_cuota, update_cuota, delete_cuota, marcar_cuota_pagada, pagar_cuotas_familia,
+    generar_cuotas_anio, get_estadisticas_cuotas
 };
 use serde_json::Value;
 use serde::{Deserialize, Serialize};
 use tauri::State;
+
+// Comando para obtener la versión de la aplicación
+#[tauri::command]
+pub fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HermanoConFamiliaData {
@@ -176,14 +182,26 @@ pub fn marcar_cuota_pagada_cmd(db: State<DbConnection>, id: i32, fecha_pago: Str
 }
 
 #[tauri::command]
+pub fn pagar_cuotas_familia_cmd(
+    db: State<DbConnection>,
+    familia_id: i32,
+    anio: i32,
+    fecha_pago: String,
+    metodo_pago: String
+) -> Result<i32, String> {
+    pagar_cuotas_familia(&db, familia_id, anio, &fecha_pago, &metodo_pago)
+        .map_err(|e| format!("Error al pagar cuotas de familia: {}", e))
+}
+
+#[tauri::command]
 pub fn delete_cuota_cmd(db: State<DbConnection>, id: i32) -> Result<(), String> {
     delete_cuota(&db, id)
         .map_err(|e| format!("Error al eliminar cuota: {}", e))
 }
 
 #[tauri::command]
-pub fn generar_cuotas_trimestre_cmd(db: State<DbConnection>, anio: i32, trimestre: i32, importe: f64) -> Result<i32, String> {
-    generar_cuotas_trimestre(&db, anio, trimestre, importe)
+pub fn generar_cuotas_anio_cmd(db: State<DbConnection>, anio: i32, importe: f64) -> Result<i32, String> {
+    generar_cuotas_anio(&db, anio, importe)
         .map_err(|e| format!("Error al generar cuotas: {}", e))
 }
 

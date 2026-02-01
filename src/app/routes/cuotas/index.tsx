@@ -13,7 +13,6 @@ interface Cuota extends Record<string, unknown> {
     id: number
     hermano_id: number
     anio: number
-    trimestre: number
     importe: number
     pagado: boolean
     fecha_pago?: string
@@ -69,19 +68,6 @@ export function Component() {
         } catch (error) {
             console.error('Error deleting cuota:', error)
             toast.error('Error al eliminar la cuota')
-        }
-    }
-
-    const handleMarcarPagada = async (cuota: Cuota) => {
-        try {
-            await invoke('marcar_cuota_pagada_cmd', {
-                id: cuota.id,
-                pagado: !cuota.pagado
-            })
-            loadData()
-        } catch (error) {
-            console.error('Error updating cuota:', error)
-            toast.error('Error al actualizar el estado de la cuota')
         }
     }
 
@@ -168,13 +154,6 @@ export function Component() {
                 <div className="text-sm font-medium text-gray-900">
                     {String(value)}
                 </div>
-            )
-        },
-        {
-            key: 'trimestre',
-            label: 'Trimestre',
-            render: (value) => (
-                <div className="text-sm text-gray-900">{value}º Trim.</div>
             )
         },
         {

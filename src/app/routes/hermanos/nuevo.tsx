@@ -502,28 +502,8 @@ export function Component() {
             <NuevaFamiliaModal
                 isOpen={showNuevaFamiliaModal}
                 onClose={() => setShowNuevaFamiliaModal(false)}
-                onBeforeCreate={async () => {
-                    // Guardar primero el hermano para obtener su ID
+                onFamiliaCreated={async (familiaId) => {
                     try {
-                        const hermanoData = prepareHermanoData()
-                        const hermanoId = await invoke<number>(
-                            'create_hermano_cmd',
-                            { hermano: hermanoData }
-                        )
-                        return hermanoId
-                    } catch (error) {
-                        toast.error('Error al crear el hermano')
-                        throw error
-                    }
-                }}
-                onFamiliaCreated={async (familiaId, hermanoId) => {
-                    try {
-                        if (hermanoId) {
-                            await invoke('update_hermano_familia_cmd', {
-                                hermanoId: hermanoId,
-                                familiaId: familiaId
-                            })
-                        }
                         // Recargar familias para actualizar el selector
                         const data = await invoke<Familia[]>(
                             'get_all_familias_cmd'
@@ -536,9 +516,7 @@ export function Component() {
                         })
                         toast.success('Familia creada correctamente')
                     } catch (error) {
-                        toast.error(
-                            `Error al vincular hermano con familia: ${error}`
-                        )
+                        toast.error(`Error al cargar familias: ${error}`)
                     }
                 }}
             />

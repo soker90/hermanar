@@ -19,7 +19,6 @@ interface Cuota {
     id: number
     hermano_id: number
     anio: number
-    trimestre: number
     importe: number
     pagado: boolean
     fecha_pago?: string
@@ -37,8 +36,7 @@ export function Component() {
     const [formData, setFormData] = useState({
         hermano_id: 0,
         anio: new Date().getFullYear(),
-        trimestre: 1,
-        importe: 50,
+        importe: 10,
         pagado: false,
         fecha_pago: '',
         metodo_pago: 'efectivo',
@@ -56,7 +54,6 @@ export function Component() {
                     setFormData({
                         hermano_id: cuota.hermano_id,
                         anio: cuota.anio,
-                        trimestre: cuota.trimestre,
                         importe: cuota.importe,
                         pagado: cuota.pagado,
                         fecha_pago: cuota.fecha_pago || '',
@@ -244,8 +241,8 @@ export function Component() {
                             })
                         }
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        placeholder="Notas adicionales..."
+                        className="w-full px-3 py-2 border-2 border-gray-300 rounded-md focus:outline-none focus:border-2 focus:border-blue-500"
+                        placeholder="Observaciones adicionales..."
                     />
                 </div>
 

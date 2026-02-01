@@ -32,7 +32,6 @@ export function Component() {
     const toast = useToastContext()
     const [loading, setLoading] = useState(false)
     const [loadingData, setLoadingData] = useState(true)
-    const [hermanos, setHermanos] = useState<Hermano[]>([])
     const [hermanosDeFamilia, setHermanosDeFamilia] = useState<Hermano[]>([])
     const [formData, setFormData] = useState({
         nombre_familia: '',
@@ -52,15 +51,6 @@ export function Component() {
                         hermano_direccion_id: familia.hermano_direccion_id
                     })
                 }
-
-                // Cargar hermanos activos (sin familia o de esta familia)
-                const hermanosData = await invoke<Hermano[]>(
-                    'get_hermanos_activos_cmd'
-                )
-                const disponibles = hermanosData.filter(
-                    (h) => !h.familia_id || h.familia_id === Number(id)
-                )
-                setHermanos(disponibles)
 
                 // Cargar hermanos de esta familia para mostrar en la tabla
                 const hermanosFamiliaData = await invoke<Hermano[]>(
@@ -124,15 +114,6 @@ export function Component() {
                 { familiaId: Number(id) }
             )
             setHermanosDeFamilia(hermanosFamiliaData)
-
-            // Recargar hermanos disponibles para el selector
-            const hermanosData = await invoke<Hermano[]>(
-                'get_hermanos_activos_cmd'
-            )
-            const disponibles = hermanosData.filter(
-                (h) => !h.familia_id || h.familia_id === Number(id)
-            )
-            setHermanos(disponibles)
 
             toast.success('Hermano removido de la familia correctamente')
         } catch (error) {
@@ -211,13 +192,24 @@ export function Component() {
                             })
                         }
                         options={[
-                            { value: '', label: 'No configurada' },
-                            ...hermanos.map((h) => ({
+                            {
+                                value: '',
+                                label:
+                                    hermanosDeFamilia.length === 0
+                                        ? 'Sin hermanos en la familia'
+                                        : 'No configurada'
+                            },
+                            ...hermanosDeFamilia.map((h) => ({
                                 value: h.id!.toString(),
                                 label: `${h.nombre} ${h.primer_apellido} ${h.segundo_apellido || ''}${h.direccion ? ` - ${h.direccion}` : ''}`
                             }))
                         ]}
-                        helperText="Selecciona el hermano cuya dirección será la principal de la familia"
+                        disabled={hermanosDeFamilia.length === 0}
+                        helperText={
+                            hermanosDeFamilia.length === 0
+                                ? 'Añade hermanos a la familia para poder seleccionar una dirección principal'
+                                : 'Selecciona el hermano cuya dirección será la principal de la familia'
+                        }
                     />
 
                     <div className="flex gap-4 justify-end">

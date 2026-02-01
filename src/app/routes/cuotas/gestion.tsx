@@ -13,7 +13,6 @@ import {
     User,
     Check,
     X,
-    AlertCircle,
     History
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
@@ -123,19 +122,6 @@ export function Component() {
         }
     }
 
-    const handleMarcarPagada = async (cuota: Cuota) => {
-        try {
-            await invoke('marcar_cuota_pagada_cmd', {
-                id: cuota.id,
-                pagado: !cuota.pagado
-            })
-            loadData()
-        } catch (error) {
-            console.error('Error updating cuota:', error)
-            toast.error('Error al actualizar el estado de la cuota')
-        }
-    }
-
     const getHermanoNombre = (hermanoId: number) => {
         const hermano = hermanos.find((h) => h.id === hermanoId)
         return hermano
@@ -180,10 +166,6 @@ export function Component() {
         (sum, c) => sum + c.importe,
         0
     )
-    const totalPagadoHistorico = cuotasFiltradas
-        .filter((c) => c.pagado)
-        .reduce((sum, c) => sum + c.importe, 0)
-    const totalPendienteHistorico = totalImporteHistorico - totalPagadoHistorico
 
     const columnsHistorico: TableColumn<Cuota>[] = [
         {
@@ -218,13 +200,6 @@ export function Component() {
                 <div className="text-sm font-medium text-gray-900">
                     {String(value)}
                 </div>
-            )
-        },
-        {
-            key: 'trimestre',
-            label: 'Trimestre',
-            render: (value) => (
-                <div className="text-sm text-gray-900">{value}º Trim.</div>
             )
         },
         {
@@ -270,6 +245,20 @@ export function Component() {
                     {(value as string) || '-'}
                 </span>
             )
+        },
+        {
+            key: 'observaciones',
+            label: 'Observaciones',
+            render: (value) => {
+                if (value) {
+                    return (
+                        <span className="text-xs text-blue-600">
+                            {value as string}
+                        </span>
+                    )
+                }
+                return <span className="text-xs text-gray-400">-</span>
+            }
         }
     ]
 
