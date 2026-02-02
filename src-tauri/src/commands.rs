@@ -1,5 +1,5 @@
 use crate::db::{
-    Hermano, Familia, Cuota, EstadisticasCuotas, DbConnection,
+    Hermano, Familia, Cuota, EstadisticasCuotas, DbConnection, DbRecoveryStatus,
     get_all_hermanos, get_hermanos_activos, get_hermano_by_id, search_hermanos,
     create_hermano, update_hermano, delete_hermano, set_hermano_inactive, get_hermanos_by_familia,
     update_hermano_familia,
@@ -7,7 +7,7 @@ use crate::db::{
     update_familia, delete_familia, get_familia_stats, get_familia_with_hermanos, get_familia_with_address,
     get_all_cuotas, get_cuotas_by_hermano, get_cuotas_by_year, get_cuotas_pendientes,
     create_cuota, update_cuota, delete_cuota, marcar_cuota_pagada, pagar_cuotas_familia,
-    generar_cuotas_anio, get_estadisticas_cuotas
+    generar_cuotas_anio, get_estadisticas_cuotas, get_db_recovery_status
 };
 use serde_json::Value;
 use serde::{Deserialize, Serialize};
@@ -17,6 +17,12 @@ use tauri::State;
 #[tauri::command]
 pub fn get_app_version() -> String {
     env!("CARGO_PKG_VERSION").to_string()
+}
+
+// Comando para verificar si hubo recuperación de BD
+#[tauri::command]
+pub fn check_db_recovery() -> Option<DbRecoveryStatus> {
+    get_db_recovery_status()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

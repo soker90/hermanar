@@ -277,7 +277,7 @@ export function Component() {
                                 </li>
                                 <li>
                                     Una vez generado, el recibo se marcará como
-                                    "Generado"
+                                    &quot;Generado&quot;
                                 </li>
                                 <li>
                                     El PDF se guardará automáticamente en tu

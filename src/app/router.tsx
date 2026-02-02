@@ -61,6 +61,10 @@ const createAppRouter = () =>
                 {
                     path: 'cuotas/:id/editar',
                     lazy: () => import('@/app/routes/cuotas/editar')
+                },
+                {
+                    path: 'backup',
+                    lazy: () => import('@/app/routes/backup/index')
                 }
             ]
         },

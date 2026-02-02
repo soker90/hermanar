@@ -1,22 +1,53 @@
 import { Outlet } from 'react-router'
-import { Users, Building2, Euro, Home, Menu, X, FileText } from 'lucide-react'
+import {
+    Users,
+    Building2,
+    Euro,
+    Home,
+    Menu,
+    X,
+    FileText,
+    Database,
+    AlertTriangle
+} from 'lucide-react'
 import { useState, useEffect } from 'react'
-import { Link, useLocation } from 'react-router'
+import { Link, useLocation, useNavigate } from 'react-router'
 import { invoke } from '@tauri-apps/api/core'
 import { UpdateChecker } from '@/components/update-checker'
+import { Modal } from '@/components/ui/modal'
+import { Button } from '@/components/ui/button'
+
+interface DbRecoveryStatus {
+    recovered: boolean
+    had_backup: boolean
+}
 
 export function Component() {
     const [sidebarOpen, setSidebarOpen] = useState(false)
     const [version, setVersion] = useState('...')
+    const [showRecoveryModal, setShowRecoveryModal] = useState(false)
+    const [recoveryStatus, setRecoveryStatus] =
+        useState<DbRecoveryStatus | null>(null)
     const location = useLocation()
+    const navigate = useNavigate()
 
     useEffect(() => {
         invoke<string>('get_app_version').then(setVersion).catch(console.error)
+
+        // Verificar si hubo recuperación de BD
+        invoke<DbRecoveryStatus | null>('check_db_recovery')
+            .then((status) => {
+                if (status && status.recovered) {
+                    setRecoveryStatus(status)
+                    setShowRecoveryModal(true)
+                }
+            })
+            .catch(console.error)
     }, [])
 
     const navigation = [
         {
-            name: 'Dashboard',
+            name: 'Inicio',
             path: '/',
             icon: Home,
             description: 'Vista general'
@@ -44,6 +75,12 @@ export function Component() {
             path: '/cuotas/recibos',
             icon: FileText,
             description: 'Generar recibos PDF'
+        },
+        {
+            name: 'Copia de Seguridad',
+            path: '/backup',
+            icon: Database,
+            description: 'Exportar e importar datos'
         }
     ]
 
@@ -54,6 +91,73 @@ export function Component() {
 
     return (
         <div className="h-screen bg-gray-50 flex overflow-hidden">
+            {/* Modal de recuperación de BD */}
+            {showRecoveryModal && recoveryStatus && (
+                <Modal
+                    isOpen={showRecoveryModal}
+                    onClose={() => setShowRecoveryModal(false)}
+                    title="Advertencia: Base de Datos Corrupta"
+                >
+                    <div className="py-4">
+                        <div className="w-16 h-16 mx-auto mb-4 bg-amber-100 rounded-full flex items-center justify-center">
+                            <AlertTriangle className="w-10 h-10 text-amber-600" />
+                        </div>
+
+                        {recoveryStatus.had_backup ? (
+                            <>
+                                <p className="text-gray-700 mb-4">
+                                    Se detectó que la base de datos estaba
+                                    corrupta y se ha restaurado automáticamente
+                                    desde una versión anterior guardada.
+                                </p>
+                                <p className="text-gray-700 mb-6">
+                                    <strong>Importante:</strong> Es posible que
+                                    hayas perdido los cambios más recientes. Si
+                                    tienes copias de seguridad más actuales,
+                                    puedes restaurarlas desde el apartado de{' '}
+                                    <strong>Copia de Seguridad</strong>.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <p className="text-gray-700 mb-4">
+                                    Se detectó que la base de datos estaba
+                                    corrupta y no se encontró ninguna versión
+                                    anterior para restaurar. Se ha creado una
+                                    nueva base de datos vacía.
+                                </p>
+                                <p className="text-gray-700 mb-6">
+                                    <strong>Importante:</strong> Si tienes
+                                    copias de seguridad, puedes restaurarlas
+                                    desde el apartado de{' '}
+                                    <strong>Copia de Seguridad</strong>
+                                    para recuperar tus datos.
+                                </p>
+                            </>
+                        )}
+
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={() => setShowRecoveryModal(false)}
+                                className="flex-1"
+                            >
+                                Entendido
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    setShowRecoveryModal(false)
+                                    navigate('/backup')
+                                }}
+                                variant="outline"
+                                className="flex-1"
+                            >
+                                Ir a Copias de Seguridad
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
             {/* Mobile sidebar overlay */}
             {sidebarOpen && (
                 <div

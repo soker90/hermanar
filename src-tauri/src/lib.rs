@@ -1,6 +1,7 @@
 mod db;
 mod commands;
 mod recibos;
+mod backup;
 
 use commands::*;
 
@@ -13,10 +14,12 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_dialog::init())
         .manage(db)
         .invoke_handler(tauri::generate_handler![
             // Comandos generales
             get_app_version,
+            check_db_recovery,
             // Comandos de hermanos
             get_all_hermanos_cmd,
             get_hermanos_activos_cmd,
@@ -57,6 +60,10 @@ pub fn run() {
             recibos::marcar_recibos_generados_cmd,
             recibos::get_documentos_path_cmd,
             recibos::abrir_carpeta_recibos_cmd,
+            // Comandos de backup
+            backup::exportar_backup_cmd,
+            backup::importar_backup_cmd,
+            backup::abrir_carpeta_descargas_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

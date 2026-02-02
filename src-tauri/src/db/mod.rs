@@ -2,10 +2,24 @@ use rusqlite::{Connection, Result};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 use anyhow::Context;
+use std::sync::OnceLock;
 
 pub mod hermanos;
 pub mod familias;
 pub mod cuotas;
+
+// Estado global para rastrear recuperación de BD
+static DB_RECOVERY_STATUS: OnceLock<DbRecoveryStatus> = OnceLock::new();
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DbRecoveryStatus {
+    pub recovered: bool,
+    pub had_backup: bool,
+}
+
+pub fn get_db_recovery_status() -> Option<DbRecoveryStatus> {
+    DB_RECOVERY_STATUS.get().cloned()
+}
 
 // Re-export specific functions
 pub use hermanos::{
@@ -120,10 +134,93 @@ pub fn init_database() -> Result<DbConnection, anyhow::Error> {
         .context("No se pudo crear el directorio de datos")?;
     
     let db_path = format!("{}/hermanar.db", db_dir);
+    let backup_path = format!("{}/hermanar.db.backup", db_dir);
+    let corrupt_path = format!("{}/hermanar-corrupta.db", db_dir);
+    
     println!("Ruta de la base de datos: {}", db_path);
 
-    let conn = Connection::open(&db_path)
-        .context("No se pudo crear/abrir la base de datos")?;
+    // Variable para rastrear si hubo recuperación
+    let mut recovery_occurred = false;
+    let mut had_backup = false;
+
+    // Intentar abrir la base de datos
+    let conn_result = Connection::open(&db_path);
+    
+    let conn = match conn_result {
+        Ok(c) => {
+            // Intentar verificar la integridad de la base de datos
+            match c.pragma_query(None, "integrity_check", |_| Ok(())) {
+                Ok(_) => c,
+                Err(e) => {
+                    println!("Error de integridad en la base de datos: {}", e);
+                    println!("Intentando recuperar desde backup...");
+                    
+                    recovery_occurred = true;
+                    
+                    // Cerrar la conexión corrupta
+                    drop(c);
+                    
+                    // Renombrar la base de datos corrupta
+                    if std::path::Path::new(&db_path).exists() {
+                        std::fs::rename(&db_path, &corrupt_path)
+                            .context("No se pudo renombrar la base de datos corrupta")?;
+                        println!("Base de datos corrupta renombrada a: {}", corrupt_path);
+                    }
+                    
+                    // Restaurar desde backup si existe
+                    if std::path::Path::new(&backup_path).exists() {
+                        had_backup = true;
+                        std::fs::rename(&backup_path, &db_path)
+                            .context("No se pudo restaurar el backup")?;
+                        println!("Backup restaurado correctamente");
+                        
+                        // Abrir la base de datos restaurada
+                        Connection::open(&db_path)
+                            .context("No se pudo abrir la base de datos restaurada")?
+                    } else {
+                        // Si no hay backup, crear una nueva base de datos
+                        println!("No se encontró backup, creando nueva base de datos");
+                        Connection::open(&db_path)
+                            .context("No se pudo crear nueva base de datos")?
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            println!("Error al abrir la base de datos: {}", e);
+            
+            recovery_occurred = true;
+            
+            // Si existe backup, intentar restaurarlo
+            if std::path::Path::new(&backup_path).exists() {
+                had_backup = true;
+                println!("Intentando restaurar desde backup...");
+                
+                // Renombrar la base de datos corrupta si existe
+                if std::path::Path::new(&db_path).exists() {
+                    std::fs::rename(&db_path, &corrupt_path)
+                        .context("No se pudo renombrar la base de datos corrupta")?;
+                }
+                
+                std::fs::rename(&backup_path, &db_path)
+                    .context("No se pudo restaurar el backup")?;
+                println!("Backup restaurado correctamente");
+                
+                Connection::open(&db_path)
+                    .context("No se pudo abrir la base de datos restaurada")?
+            } else {
+                return Err(e.into());
+            }
+        }
+    };
+    
+    // Guardar el estado de recuperación
+    if recovery_occurred {
+        let _ = DB_RECOVERY_STATUS.set(DbRecoveryStatus {
+            recovered: true,
+            had_backup,
+        });
+    }
 
     println!("Conexión establecida, creando tablas...");
 
