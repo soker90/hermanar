@@ -55,6 +55,15 @@ Hermanar es una aplicación de escritorio multiplataforma diseñada para facilit
 - ✅ Dashboard con estadísticas detalladas
 - ✅ Filtrado por año y búsqueda por hermano
 - ✅ Visualización de dirección y teléfono en pantalla de pagos
+- ✅ Generación de recibos en PDF con información detallada
+
+### 💾 Copias de Seguridad
+
+- ✅ Exportación de base de datos con compresión zstd
+- ✅ Importación de backups desde archivo
+- ✅ Backup automático antes de borrar la base de datos
+- ✅ Reinicio automático tras restauración o eliminación
+- ✅ Almacenamiento en carpeta de Descargas del usuario
 
 ### 📊 Panel de Control
 
