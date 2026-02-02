@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router'
-import { Users, Building2, Euro, Home, Menu, X } from 'lucide-react'
+import { Users, Building2, Euro, Home, Menu, X, FileText } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router'
 import { invoke } from '@tauri-apps/api/core'
@@ -38,6 +38,12 @@ export function Component() {
             path: '/cuotas/gestion',
             icon: Euro,
             description: 'Generar y gestionar'
+        },
+        {
+            name: 'Recibos',
+            path: '/cuotas/recibos',
+            icon: FileText,
+            description: 'Generar recibos PDF'
         }
     ]
 

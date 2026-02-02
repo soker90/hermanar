@@ -51,6 +51,10 @@ const createAppRouter = () =>
                     lazy: () => import('@/app/routes/cuotas/pagar')
                 },
                 {
+                    path: 'cuotas/recibos',
+                    lazy: () => import('@/app/routes/cuotas/recibos')
+                },
+                {
                     path: 'cuotas/nueva',
                     lazy: () => import('@/app/routes/cuotas/nueva')
                 },

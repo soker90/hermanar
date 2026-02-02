@@ -1,5 +1,6 @@
 mod db;
 mod commands;
+mod recibos;
 
 use commands::*;
 
@@ -51,6 +52,11 @@ pub fn run() {
             delete_cuota_cmd,
             generar_cuotas_anio_cmd,
             get_estadisticas_cuotas_cmd,
+            // Comandos de recibos
+            recibos::generar_recibos_pdf_cmd,
+            recibos::marcar_recibos_generados_cmd,
+            recibos::get_documentos_path_cmd,
+            recibos::abrir_carpeta_recibos_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
