@@ -18,7 +18,7 @@ import {
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { GenerarCuotas } from './generar'
-import { useNavigate } from 'react-router'
+import { useNavigate, useSearchParams } from 'react-router'
 import type { Cuota } from '@/types'
 import { useToastContext } from '@/contexts/toast-context'
 
@@ -35,7 +35,10 @@ type TabType = 'resumen' | 'generar' | 'historico'
 export function Component() {
     const navigate = useNavigate()
     const toast = useToastContext()
-    const [activeTab, setActiveTab] = useState<TabType>('resumen')
+    const [searchParams, setSearchParams] = useSearchParams()
+    const [activeTab, setActiveTab] = useState<TabType>(
+        (searchParams.get('tab') as TabType) || 'resumen'
+    )
     const [cuotas, setCuotas] = useState<Cuota[]>([])
     const [cuotasPendientes, setCuotasPendientes] = useState<Cuota[]>([])
     const [hermanos, setHermanos] = useState<Hermano[]>([])
@@ -49,6 +52,21 @@ export function Component() {
     useEffect(() => {
         loadData()
     }, [])
+
+    useEffect(() => {
+        const tab = searchParams.get('tab') as TabType
+        if (
+            tab &&
+            (tab === 'resumen' || tab === 'generar' || tab === 'historico')
+        ) {
+            setActiveTab(tab)
+        }
+    }, [searchParams])
+
+    const handleTabChange = (tab: TabType) => {
+        setActiveTab(tab)
+        setSearchParams({ tab })
+    }
 
     const loadData = async () => {
         try {
@@ -70,7 +88,7 @@ export function Component() {
 
     const handleCuotasGenerated = () => {
         loadData()
-        setActiveTab('resumen')
+        handleTabChange('resumen')
     }
 
     const currentYear = new Date().getFullYear()
@@ -426,7 +444,9 @@ export function Component() {
                                 data={cuotasFiltradas}
                                 columns={columnsHistorico}
                                 onEdit={(cuota) =>
-                                    navigate(`/cuotas/${cuota.id}/editar`)
+                                    navigate(
+                                        `/cuotas/${cuota.id}/editar?returnTab=${activeTab}`
+                                    )
                                 }
                                 onDelete={handleDelete}
                             />
@@ -562,7 +582,7 @@ export function Component() {
                         >
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <Button
-                                    onClick={() => setActiveTab('generar')}
+                                    onClick={() => handleTabChange('generar')}
                                     className="h-20 bg-blue-600 hover:bg-blue-700 flex flex-col items-center justify-center space-y-2"
                                 >
                                     <Users className="w-6 h-6" />
@@ -651,7 +671,7 @@ export function Component() {
                         return (
                             <button
                                 key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
+                                onClick={() => handleTabChange(tab.id)}
                                 className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${
                                     activeTab === tab.id
                                         ? 'border-blue-500 text-blue-600'

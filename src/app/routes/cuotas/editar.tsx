@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useToastContext } from '@/contexts/toast-context'
@@ -29,6 +29,7 @@ interface Cuota {
 export function Component() {
     const navigate = useNavigate()
     const { id } = useParams()
+    const [searchParams] = useSearchParams()
     const toast = useToastContext()
     const [loading, setLoading] = useState(false)
     const [loadingData, setLoadingData] = useState(true)
@@ -98,7 +99,13 @@ export function Component() {
                 cuota: dataToSend
             })
             toast.success('Cuota actualizada correctamente')
-            navigate(-1)
+
+            const returnTab = searchParams.get('returnTab')
+            if (returnTab) {
+                navigate(`/cuotas/gestion?tab=${returnTab}`)
+            } else {
+                navigate(-1)
+            }
         } catch (error) {
             console.error('Error updating cuota:', error)
             toast.error('Error al actualizar la cuota')
@@ -251,7 +258,14 @@ export function Component() {
                 <div className="flex gap-4 justify-end">
                     <Button
                         type="button"
-                        onClick={() => navigate(-1)}
+                        onClick={() => {
+                            const returnTab = searchParams.get('returnTab')
+                            if (returnTab) {
+                                navigate(`/cuotas/gestion?tab=${returnTab}`)
+                            } else {
+                                navigate(-1)
+                            }
+                        }}
                         className="bg-gray-500 hover:bg-gray-600"
                     >
                         Cancelar

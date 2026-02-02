@@ -79,12 +79,6 @@ export function GenerarCuotas({ onCuotasGenerated }: GenerarCuotasProps) {
         }
     }
 
-    const resetForm = () => {
-        setResultado(null)
-        setAnio(new Date().getFullYear())
-        setImporte(50)
-    }
-
     return (
         <>
             <Modal
@@ -226,13 +220,6 @@ export function GenerarCuotas({ onCuotasGenerated }: GenerarCuotasProps) {
                     )}
 
                     <div className="flex justify-end space-x-3">
-                        <Button
-                            onClick={resetForm}
-                            disabled={isGenerating}
-                            className="bg-gray-500 hover:bg-gray-600"
-                        >
-                            Resetear
-                        </Button>
                         <Button onClick={handleGenerar} disabled={isGenerating}>
                             {isGenerating ? (
                                 <>
