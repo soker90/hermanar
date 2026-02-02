@@ -17,6 +17,45 @@ fn get_database_path() -> Result<PathBuf, anyhow::Error> {
     Ok(PathBuf::from(db_path))
 }
 
+/// Borra la base de datos completamente después de crear un backup
+#[tauri::command]
+pub fn borrar_base_datos_cmd(_db: State<DbConnection>) -> Result<String, String> {
+    let db_path = get_database_path()
+        .map_err(|e| format!("Error al obtener ruta de BD: {}", e))?;
+    
+    if !db_path.exists() {
+        return Err("La base de datos no existe".to_string());
+    }
+    
+    // Crear backup automático antes de borrar
+    let now = Local::now();
+    let filename = format!("hermanar-backup-antes-borrar-{}", now.format("%Y-%m-%d-%H-%M-%S"));
+    
+    // Leer el archivo de base de datos
+    let db_data = fs::read(&db_path)
+        .map_err(|e| format!("Error al leer la base de datos: {}", e))?;
+    
+    // Comprimir usando zstd
+    let compressed_data = zstd::encode_all(&db_data[..], 3)
+        .map_err(|e| format!("Error al comprimir backup: {}", e))?;
+    
+    // Obtener directorio de descargas del usuario
+    let download_dir = dirs::download_dir()
+        .ok_or_else(|| "No se pudo obtener el directorio de descargas".to_string())?;
+    
+    let backup_path = download_dir.join(format!("{}.zst", filename));
+    
+    // Guardar archivo comprimido
+    fs::write(&backup_path, compressed_data)
+        .map_err(|e| format!("Error al guardar backup automático: {}", e))?;
+    
+    // Ahora borrar la base de datos
+    fs::remove_file(&db_path)
+        .map_err(|e| format!("Error al borrar la base de datos: {}", e))?;
+    
+    Ok(format!("Backup creado en: {}. Base de datos borrada exitosamente. La aplicación se reiniciará.", backup_path.to_string_lossy()))
+}
+
 /// Exporta la base de datos como archivo comprimido
 #[tauri::command]
 pub fn exportar_backup_cmd(_db: State<DbConnection>) -> Result<String, String> {

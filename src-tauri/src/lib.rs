@@ -63,6 +63,7 @@ pub fn run() {
             // Comandos de backup
             backup::exportar_backup_cmd,
             backup::importar_backup_cmd,
+            backup::borrar_base_datos_cmd,
             backup::abrir_carpeta_descargas_cmd,
         ])
         .run(tauri::generate_context!())

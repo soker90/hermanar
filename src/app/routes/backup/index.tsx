@@ -1,11 +1,13 @@
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Modal } from '@/components/ui/modal'
 import {
     Database,
     Download,
     Upload,
     FolderOpen,
-    AlertCircle
+    AlertCircle,
+    Trash2
 } from 'lucide-react'
 import { useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
@@ -17,6 +19,8 @@ export function Component() {
     const toast = useToastContext()
     const [exportLoading, setExportLoading] = useState(false)
     const [importLoading, setImportLoading] = useState(false)
+    const [showDeleteModal, setShowDeleteModal] = useState(false)
+    const [deleteLoading, setDeleteLoading] = useState(false)
 
     const handleExportBackup = async () => {
         setExportLoading(true)
@@ -81,6 +85,32 @@ export function Component() {
         } catch (error) {
             console.error('Error al abrir carpeta:', error)
             toast.error('Error al abrir la carpeta de descargas')
+        }
+    }
+
+    const handleDeleteDatabase = async () => {
+        setDeleteLoading(true)
+        try {
+            const result = await invoke<string>('borrar_base_datos_cmd')
+            toast.success(result)
+            setShowDeleteModal(false)
+
+            // Comportamiento diferente según el entorno
+            if (import.meta.env.DEV) {
+                toast.info(
+                    'Reinicia manualmente la aplicación (Ctrl+C y pnpm dev) para crear una nueva base de datos'
+                )
+            } else {
+                // En producción, reiniciar automáticamente después de 2 segundos
+                setTimeout(async () => {
+                    await relaunch()
+                }, 2000)
+            }
+        } catch (error) {
+            console.error('Error al borrar base de datos:', error)
+            toast.error(`Error al borrar: ${error}`)
+        } finally {
+            setDeleteLoading(false)
         }
     }
 
@@ -263,6 +293,105 @@ export function Component() {
                     </div>
                 </Card>
             </div>
+
+            {/* Borrar Base de Datos */}
+            <Card className="mt-6 p-6 border-red-200 bg-red-50">
+                <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                        <h3 className="font-semibold mb-2 flex items-center gap-2 text-red-800">
+                            <Trash2 className="w-5 h-5" />
+                            Zona Peligrosa
+                        </h3>
+                        <p className="text-sm text-red-700 mb-4">
+                            Borrar permanentemente todos los datos de la
+                            aplicación. Se creará un backup automático antes de
+                            borrar.
+                        </p>
+                        <div className="bg-red-100 border border-red-300 rounded-lg p-3 mb-4">
+                            <p className="text-sm text-red-800 flex items-start gap-2">
+                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                                <span>
+                                    <strong>Precaución:</strong> Se eliminarán
+                                    todos los hermanos, familias y cuotas. Se
+                                    creará un backup automático en la carpeta de
+                                    Descargas.
+                                </span>
+                            </p>
+                        </div>
+                        <Button
+                            onClick={() => setShowDeleteModal(true)}
+                            variant="outline"
+                            className="border-red-600 text-red-600 hover:bg-red-100"
+                        >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Borrar Base de Datos
+                        </Button>
+                    </div>
+                </div>
+            </Card>
+
+            {/* Modal de confirmación de borrado */}
+            <Modal
+                isOpen={showDeleteModal}
+                onClose={() => !deleteLoading && setShowDeleteModal(false)}
+                title="¿Borrar Base de Datos?"
+            >
+                <div className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
+                        <p className="text-blue-800 font-semibold mb-1">
+                            💾 Backup Automático
+                        </p>
+                        <p className="text-sm text-blue-700">
+                            Antes de borrar, se creará automáticamente una copia
+                            de seguridad en tu carpeta de Descargas.
+                        </p>
+                    </div>
+
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <p className="text-red-800 font-semibold mb-2">
+                            ⚠️ Esta acción es irreversible
+                        </p>
+                        <p className="text-sm text-red-700">
+                            Se eliminarán permanentemente:
+                        </p>
+                        <ul className="text-sm text-red-700 mt-2 ml-4 list-disc">
+                            <li>Todos los hermanos registrados</li>
+                            <li>Todas las familias</li>
+                            <li>Todas las cuotas y pagos</li>
+                            <li>Todos los recibos generados</li>
+                        </ul>
+                    </div>
+
+                    <p className="text-sm text-gray-600">
+                        Después de borrar la base de datos, la aplicación se
+                        reiniciará con una base de datos vacía.
+                    </p>
+
+                    <div className="flex gap-3 justify-end">
+                        <Button
+                            onClick={() => setShowDeleteModal(false)}
+                            variant="outline"
+                            disabled={deleteLoading}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleDeleteDatabase}
+                            disabled={deleteLoading}
+                            className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                            {deleteLoading ? (
+                                'Borrando...'
+                            ) : (
+                                <>
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Sí, Borrar Todo
+                                </>
+                            )}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
 
             {/* Información adicional */}
             <Card className="mt-6 p-6 bg-gray-50">
