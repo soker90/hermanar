@@ -27,7 +27,8 @@ export function Component() {
         pagado: false,
         fecha_pago: '',
         metodo_pago: 'efectivo',
-        observaciones: ''
+        observaciones: '',
+        recibo: false
     })
 
     useEffect(() => {

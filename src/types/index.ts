@@ -88,6 +88,7 @@ export interface Cuota extends Record<string, unknown> {
     fecha_pago?: string // ISO format YYYY-MM-DD
     metodo_pago?: 'efectivo' | 'transferencia' | 'domiciliacion' | 'bizum'
     observaciones?: string
+    recibo: boolean
     created_at?: string
     updated_at?: string
 }
@@ -138,6 +139,7 @@ export interface CuotaFormData {
     fecha_pago?: string
     metodo_pago?: 'efectivo' | 'transferencia' | 'domiciliacion'
     observaciones?: string
+    recibo?: boolean
 }
 
 // Tipos para filtros y búsquedas

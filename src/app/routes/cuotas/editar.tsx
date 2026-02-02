@@ -40,7 +40,8 @@ export function Component() {
         pagado: false,
         fecha_pago: '',
         metodo_pago: 'efectivo',
-        observaciones: ''
+        observaciones: '',
+        recibo: false
     })
 
     useEffect(() => {
@@ -58,7 +59,8 @@ export function Component() {
                         pagado: cuota.pagado,
                         fecha_pago: cuota.fecha_pago || '',
                         metodo_pago: cuota.metodo_pago || 'efectivo',
-                        observaciones: cuota.observaciones || ''
+                        observaciones: cuota.observaciones || '',
+                        recibo: cuota.recibo || false
                     })
                 }
 
@@ -96,7 +98,7 @@ export function Component() {
                 cuota: dataToSend
             })
             toast.success('Cuota actualizada correctamente')
-            navigate('/cuotas')
+            navigate(-1)
         } catch (error) {
             console.error('Error updating cuota:', error)
             toast.error('Error al actualizar la cuota')
@@ -249,7 +251,7 @@ export function Component() {
                 <div className="flex gap-4 justify-end">
                     <Button
                         type="button"
-                        onClick={() => navigate('/cuotas')}
+                        onClick={() => navigate(-1)}
                         className="bg-gray-500 hover:bg-gray-600"
                     >
                         Cancelar

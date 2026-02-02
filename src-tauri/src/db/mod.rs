@@ -91,6 +91,7 @@ pub struct Cuota {
     pub fecha_pago: Option<String>,
     pub metodo_pago: Option<String>,
     pub observaciones: Option<String>,
+    pub recibo: bool,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
 }
@@ -127,6 +128,9 @@ pub fn init_database() -> Result<DbConnection, anyhow::Error> {
     println!("Conexión establecida, creando tablas...");
 
     create_tables(&conn)?;
+    
+    println!("Ejecutando migraciones...");
+    run_migrations(&conn)?;
 
     println!("Base de datos inicializada correctamente.");
 
@@ -194,6 +198,7 @@ fn create_tables(conn: &Connection) -> Result<(), anyhow::Error> {
             fecha_pago TEXT,
             metodo_pago TEXT,
             observaciones TEXT,
+            recibo BOOLEAN NOT NULL DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (hermano_id) REFERENCES hermanos (id) ON DELETE CASCADE,
@@ -224,5 +229,72 @@ fn create_tables(conn: &Connection) -> Result<(), anyhow::Error> {
         [],
     )?;
 
+    // Tabla de versión del esquema
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS schema_version (
+            version INTEGER PRIMARY KEY,
+            applied_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )",
+        [],
+    )?;
+
+    Ok(())
+}
+
+fn get_schema_version(conn: &Connection) -> Result<i32, anyhow::Error> {
+    // Intentar obtener la versión, si no existe la tabla o no hay registros, devolver 0
+    let version = conn
+        .query_row(
+            "SELECT COALESCE(MAX(version), 0) FROM schema_version",
+            [],
+            |row| row.get::<_, i32>(0),
+        )
+        .unwrap_or(0);
+    
+    Ok(version)
+}
+
+fn set_schema_version(conn: &Connection, version: i32) -> Result<(), anyhow::Error> {
+    conn.execute(
+        "INSERT INTO schema_version (version) VALUES (?1)",
+        [version],
+    )?;
+    Ok(())
+}
+
+fn run_migrations(conn: &Connection) -> Result<(), anyhow::Error> {
+    let current_version = get_schema_version(conn)?;
+    println!("Versión actual del esquema: {}", current_version);
+
+    // Migración 1: Añadir campo recibo a cuotas
+    if current_version < 1 {
+        println!("Aplicando migración 1: Añadir campo recibo");
+        
+        // Verificar si la columna ya existe
+        let column_exists: bool = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('cuotas') WHERE name='recibo'",
+                [],
+                |row| {
+                    let count: i32 = row.get(0)?;
+                    Ok(count > 0)
+                },
+            )?;
+
+        if !column_exists {
+            conn.execute(
+                "ALTER TABLE cuotas ADD COLUMN recibo BOOLEAN NOT NULL DEFAULT 0",
+                [],
+            )?;
+            println!("Campo 'recibo' añadido a la tabla cuotas");
+        } else {
+            println!("Campo 'recibo' ya existe, saltando migración");
+        }
+
+        set_schema_version(conn, 1)?;
+        println!("Migración 1 aplicada correctamente");
+    }
+
+    println!("Todas las migraciones completadas");
     Ok(())
 }

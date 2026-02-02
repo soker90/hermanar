@@ -12,8 +12,9 @@ impl Cuota {
             fecha_pago: row.get(5)?,
             metodo_pago: row.get(6)?,
             observaciones: row.get(7)?,
-            created_at: row.get(8)?,
-            updated_at: row.get(9)?,
+            recibo: row.get(8)?,
+            created_at: row.get(9)?,
+            updated_at: row.get(10)?,
         })
     }
 }
@@ -22,7 +23,7 @@ pub fn get_all_cuotas(db: &DbConnection) -> Result<Vec<Cuota>, anyhow::Error> {
     let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
         "SELECT id, hermano_id, anio, importe, pagado,
-                fecha_pago, metodo_pago, observaciones, created_at, updated_at
+                fecha_pago, metodo_pago, observaciones, recibo, created_at, updated_at
          FROM cuotas
          ORDER BY anio DESC, hermano_id"
     )?;
@@ -39,7 +40,7 @@ pub fn get_cuotas_by_hermano(db: &DbConnection, hermano_id: i32) -> Result<Vec<C
     let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
         "SELECT id, hermano_id, anio, importe, pagado,
-                fecha_pago, metodo_pago, observaciones, created_at, updated_at
+                fecha_pago, metodo_pago, observaciones, recibo, created_at, updated_at
          FROM cuotas
          WHERE hermano_id = ?1
          ORDER BY anio DESC"
@@ -57,7 +58,7 @@ pub fn get_cuotas_by_year(db: &DbConnection, anio: i32) -> Result<Vec<Cuota>, an
     let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
         "SELECT id, hermano_id, anio, importe, pagado,
-                fecha_pago, metodo_pago, observaciones, created_at, updated_at
+                fecha_pago, metodo_pago, observaciones, recibo, created_at, updated_at
          FROM cuotas
          WHERE anio = ?1
          ORDER BY hermano_id"
@@ -75,7 +76,7 @@ pub fn get_cuotas_pendientes(db: &DbConnection) -> Result<Vec<Cuota>, anyhow::Er
     let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
         "SELECT id, hermano_id, anio, importe, pagado,
-                fecha_pago, metodo_pago, observaciones, created_at, updated_at
+                fecha_pago, metodo_pago, observaciones, recibo, created_at, updated_at
          FROM cuotas
          WHERE pagado = 0
          ORDER BY anio ASC, hermano_id"
@@ -94,8 +95,8 @@ pub fn create_cuota(db: &DbConnection, cuota: &Cuota) -> Result<i32, anyhow::Err
 
     conn.execute(
         "INSERT INTO cuotas
-         (hermano_id, anio, importe, pagado, fecha_pago, metodo_pago, observaciones)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+         (hermano_id, anio, importe, pagado, fecha_pago, metodo_pago, observaciones, recibo)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
             cuota.hermano_id,
             cuota.anio,
@@ -104,6 +105,7 @@ pub fn create_cuota(db: &DbConnection, cuota: &Cuota) -> Result<i32, anyhow::Err
             cuota.fecha_pago,
             cuota.metodo_pago,
             cuota.observaciones,
+            cuota.recibo,
         ],
     )?;
 
@@ -117,8 +119,8 @@ pub fn update_cuota(db: &DbConnection, id: i32, cuota: &Cuota) -> Result<(), any
         "UPDATE cuotas
          SET hermano_id = ?1, anio = ?2, importe = ?3,
              pagado = ?4, fecha_pago = ?5, metodo_pago = ?6,
-             observaciones = ?7, updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?8",
+             observaciones = ?7, recibo = ?8, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?9",
         params![
             cuota.hermano_id,
             cuota.anio,
@@ -127,6 +129,7 @@ pub fn update_cuota(db: &DbConnection, id: i32, cuota: &Cuota) -> Result<(), any
             cuota.fecha_pago,
             cuota.metodo_pago,
             cuota.observaciones,
+            cuota.recibo,
             id,
         ],
     )?;
