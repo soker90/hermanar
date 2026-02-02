@@ -17,18 +17,7 @@ import {
 import { useEffect, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useParams, useNavigate } from 'react-router'
-import type { Hermano } from '@/types'
-
-interface Cuota extends Record<string, unknown> {
-    id: number
-    hermano_id: number
-    anio: number
-    importe: number
-    pagado: boolean
-    fecha_pago?: string
-    metodo_pago?: string
-    observaciones?: string
-}
+import type { Hermano, Cuota } from '@/types'
 
 export function Component() {
     const { id } = useParams()

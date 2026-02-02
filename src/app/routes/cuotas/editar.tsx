@@ -6,25 +6,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useToastContext } from '@/contexts/toast-context'
-
-interface Hermano {
-    id: number
-    nombre: string
-    apellidos: string
-    numero_hermano: string
-    activo: boolean
-}
-
-interface Cuota {
-    id: number
-    hermano_id: number
-    anio: number
-    importe: number
-    pagado: boolean
-    fecha_pago?: string
-    metodo_pago?: string
-    observaciones?: string
-}
+import type { Hermano, Cuota } from '@/types'
 
 export function Component() {
     const navigate = useNavigate()
@@ -140,8 +122,8 @@ export function Component() {
                         })
                     }
                     options={hermanos.map((h) => ({
-                        value: h.id.toString(),
-                        label: `${h.numero_hermano} - ${h.nombre} ${h.apellidos}`
+                        value: h.id!.toString(),
+                        label: `${h.numero_hermano} - ${h.nombre} ${h.primer_apellido}${h.segundo_apellido ? ' ' + h.segundo_apellido : ''}`
                     }))}
                     required
                 />

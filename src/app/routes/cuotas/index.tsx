@@ -8,25 +8,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { invoke } from '@tauri-apps/api/core'
 import { useToastContext } from '@/contexts/toast-context'
-
-interface Cuota extends Record<string, unknown> {
-    id: number
-    hermano_id: number
-    anio: number
-    importe: number
-    pagado: boolean
-    fecha_pago?: string
-    metodo_pago?: string
-    observaciones?: string
-}
-
-interface Hermano {
-    id: number
-    nombre: string
-    primer_apellido: string
-    segundo_apellido?: string
-    numero_hermano: string
-}
+import type { Cuota, Hermano } from '@/types'
 
 export function Component() {
     const navigate = useNavigate()
