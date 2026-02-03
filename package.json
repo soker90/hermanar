@@ -14,7 +14,11 @@
         "format": "prettier --write ."
     },
     "lint-staged": {
-        "**/*": "prettier --write --ignore-unknown"
+        "*.{js,jsx,ts,tsx}": [
+            "eslint --fix --max-warnings 0",
+            "prettier --write"
+        ],
+        "*.{json,md,yml,yaml}": "prettier --write"
     },
     "dependencies": {
         "@radix-ui/react-slot": "^1.2.4",
