@@ -7,12 +7,14 @@ import {
     Printer,
     CheckSquare,
     Square,
-    FolderOpen
+    FolderOpen,
+    Settings
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { useToastContext } from '@/contexts/toast-context'
 import type { Cuota } from '@/types'
+import { ConfiguracionReciboModal } from '@/components/configuracion-recibo-modal'
 
 interface Hermano {
     id: number
@@ -33,6 +35,7 @@ export function Component() {
         new Date().getFullYear().toString()
     )
     const [filtroRecibo, setFiltroRecibo] = useState<string>('sin_recibo')
+    const [showConfigModal, setShowConfigModal] = useState(false)
 
     useEffect(() => {
         loadData()
@@ -321,6 +324,14 @@ export function Component() {
                         </Button>
 
                         <Button
+                            onClick={() => setShowConfigModal(true)}
+                            className="bg-purple-600 hover:bg-purple-700"
+                        >
+                            <Settings className="h-4 w-4 mr-2" />
+                            Configuración
+                        </Button>
+
+                        <Button
                             onClick={handleAbrirCarpeta}
                             className="bg-blue-600 hover:bg-blue-700"
                         >
@@ -359,6 +370,10 @@ export function Component() {
                     </div>
                 )}
             </div>
+            <ConfiguracionReciboModal
+                isOpen={showConfigModal}
+                onClose={() => setShowConfigModal(false)}
+            />{' '}
         </Card>
     )
 }

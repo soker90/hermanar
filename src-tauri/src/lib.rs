@@ -58,6 +58,8 @@ pub fn run() {
             // Comandos de recibos
             recibos::generar_recibos_pdf_cmd,
             recibos::marcar_recibos_generados_cmd,
+            recibos::get_configuracion_recibo_cmd,
+            recibos::guardar_configuracion_recibo_cmd,
             recibos::get_documentos_path_cmd,
             recibos::abrir_carpeta_recibos_cmd,
             // Comandos de backup

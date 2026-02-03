@@ -2,6 +2,15 @@ use crate::db::{DbConnection, Cuota};
 use printpdf::*;
 use std::fs::File;
 use std::io::BufWriter;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConfiguracionRecibo {
+    pub logo_path: Option<String>,
+    pub nombre_hermandad: String,
+    pub ubicacion: String,
+    pub direccion: String,
+}
 
 #[tauri::command]
 pub fn generar_recibos_pdf_cmd(
@@ -19,39 +28,99 @@ pub fn marcar_recibos_generados_cmd(
     marcar_recibos_generados(&db, cuotas_ids).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+pub fn get_configuracion_recibo_cmd(
+    db: tauri::State<DbConnection>,
+) -> Result<Option<ConfiguracionRecibo>, String> {
+    get_configuracion_recibo(&db).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn guardar_configuracion_recibo_cmd(
+    db: tauri::State<DbConnection>,
+    config: ConfiguracionRecibo,
+) -> Result<(), String> {
+    guardar_configuracion_recibo(&db, config).map_err(|e| e.to_string())
+}
+
 fn generar_recibos_pdf(
     db: &DbConnection,
     cuotas_ids: Vec<i32>,
 ) -> Result<String, anyhow::Error> {
-    let conn = db
-        .lock()
-        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    // Obtener las cuotas, configuración y datos de hermanos
+    let (cuotas_con_hermanos, config) = {
+        let conn = db
+            .lock()
+            .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
-    // Obtener las cuotas
-    let mut cuotas = Vec::new();
-    for id in &cuotas_ids {
-        let cuota: Cuota = conn.query_row(
-            "SELECT id, hermano_id, anio, importe, pagado, fecha_pago, metodo_pago, observaciones, recibo, created_at, updated_at
-             FROM cuotas WHERE id = ?1",
-            [id],
+        // Obtener las cuotas
+        let mut cuotas = Vec::new();
+        for id in &cuotas_ids {
+            let cuota: Cuota = conn.query_row(
+                "SELECT id, hermano_id, anio, importe, pagado, fecha_pago, metodo_pago, observaciones, recibo, created_at, updated_at
+                 FROM cuotas WHERE id = ?1",
+                [id],
+                |row| {
+                    Ok(Cuota {
+                        id: Some(row.get(0)?),
+                        hermano_id: row.get(1)?,
+                        anio: row.get(2)?,
+                        importe: row.get(3)?,
+                        pagado: row.get(4)?,
+                        fecha_pago: row.get(5)?,
+                        metodo_pago: row.get(6)?,
+                        observaciones: row.get(7)?,
+                        recibo: row.get(8)?,
+                        created_at: row.get(9)?,
+                        updated_at: row.get(10)?,
+                    })
+                },
+            )?;
+            cuotas.push(cuota);
+        }
+
+        // Obtener información de hermanos para cada cuota
+        let mut cuotas_con_hermanos = Vec::new();
+        for cuota in cuotas {
+            let hermano = conn.query_row(
+                "SELECT nombre, primer_apellido, segundo_apellido, numero_hermano, direccion, localidad, provincia, codigo_postal
+                 FROM hermanos WHERE id = ?1",
+                [cuota.hermano_id],
+                |row| Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, Option<String>>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, Option<String>>(4)?,
+                    row.get::<_, Option<String>>(5)?,
+                    row.get::<_, Option<String>>(6)?,
+                    row.get::<_, Option<String>>(7)?,
+                )),
+            )?;
+            cuotas_con_hermanos.push((cuota, hermano));
+        }
+
+        // Obtener configuración de recibos
+        let config = conn.query_row(
+            "SELECT logo_path, nombre_hermandad, ubicacion, direccion FROM configuracion_recibos WHERE id = 1",
+            [],
             |row| {
-                Ok(Cuota {
-                    id: Some(row.get(0)?),
-                    hermano_id: row.get(1)?,
-                    anio: row.get(2)?,
-                    importe: row.get(3)?,
-                    pagado: row.get(4)?,
-                    fecha_pago: row.get(5)?,
-                    metodo_pago: row.get(6)?,
-                    observaciones: row.get(7)?,
-                    recibo: row.get(8)?,
-                    created_at: row.get(9)?,
-                    updated_at: row.get(10)?,
+                Ok(ConfiguracionRecibo {
+                    logo_path: row.get(0)?,
+                    nombre_hermandad: row.get(1)?,
+                    ubicacion: row.get(2)?,
+                    direccion: row.get(3)?,
                 })
             },
-        )?;
-        cuotas.push(cuota);
-    }
+        ).unwrap_or_else(|_| ConfiguracionRecibo {
+            logo_path: None,
+            nombre_hermandad: "HERMANDAD DE SAN ISIDRO LABRADOR".to_string(),
+            ubicacion: "ALCÁZAR DE SAN JUAN".to_string(),
+            direccion: "Altozano de la Inmaculada – 13600 Alcázar de San Juan (Ciudad Real)".to_string(),
+        });
+
+        (cuotas_con_hermanos, config)
+    }; // Liberamos el lock aquí
 
     // Crear el PDF
     let (doc, page1, layer1) =
@@ -61,104 +130,222 @@ fn generar_recibos_pdf(
 
     let mut current_layer = doc.get_page(page1).get_layer(layer1);
 
-    // Posición inicial
+    // Posición inicial - empezamos desde arriba
     let mut y_position = 270.0;
-    let margin_left = 20.0;
     let page_height = 297.0;
     let margin_bottom = 20.0;
-    let recibo_height = 80.0;
+    let recibo_height = 90.0; // Altura del recibo
 
-    for cuota in cuotas.iter() {
+    for (cuota, hermano) in cuotas_con_hermanos.iter() {
         // Verificar si necesitamos una nueva página
         if y_position < margin_bottom + recibo_height {
             let (page_num, layer_num) = doc.add_page(Mm(210.0), Mm(297.0), "Capa 1");
             current_layer = doc.get_page(page_num).get_layer(layer_num);
-            y_position = page_height - 20.0;
+            y_position = page_height - 27.0;
         }
-
-        // Obtener información del hermano
-        let hermano: (String, String, Option<String>, String) = conn
-            .query_row(
-                "SELECT nombre, primer_apellido, segundo_apellido, numero_hermano 
-                 FROM hermanos WHERE id = ?1",
-                [cuota.hermano_id],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
-            )?;
 
         let nombre_completo = format!(
             "{} {} {}",
             hermano.0,
             hermano.1,
-            hermano.2.unwrap_or_default()
+            hermano.2.as_deref().unwrap_or("")
         );
 
-        // Título
+        // TODO: Implementar inserción de logo cuando config.logo_path esté presente
+        // Requiere agregar dependencia de image y convertir PNG/JPG a formato compatible con printpdf
+        
+        // ENCABEZADO - Título de la hermandad
         current_layer.begin_text_section();
-        current_layer.set_font(&font_bold, 18.0);
-        current_layer.set_text_cursor(Mm(margin_left), Mm(y_position));
-        current_layer.write_text("RECIBO DE CUOTA", &font_bold);
+        current_layer.set_font(&font_bold, 10.0);
+        current_layer.set_text_cursor(Mm(70.0), Mm(y_position));
+        current_layer.write_text(&config.nombre_hermandad, &font_bold);
+        current_layer.end_text_section();
+
+        y_position -= 6.0;
+
+        // Ubicación
+        current_layer.begin_text_section();
+        current_layer.set_font(&font_bold, 10.0);
+        current_layer.set_text_cursor(Mm(85.0), Mm(y_position));
+        current_layer.write_text(&config.ubicacion, &font_bold);
+        current_layer.end_text_section();
+
+        y_position -= 5.0;
+
+        // Dirección
+        current_layer.begin_text_section();
+        current_layer.set_font(&font, 8.0);
+        current_layer.set_text_cursor(Mm(60.0), Mm(y_position));
+        current_layer.write_text(&config.direccion, &font);
+        current_layer.end_text_section();
+
+        y_position -= 8.0;
+
+        // Número de hermano en la esquina superior derecha
+        current_layer.begin_text_section();
+        current_layer.set_font(&font, 9.0);
+        current_layer.set_text_cursor(Mm(163.5), Mm(y_position + 8.0));
+        current_layer.write_text("Nº HERMANO:", &font);
+        current_layer.end_text_section();
+
+        // Recuadro para número de hermano (2.86 x 1.63 cm)
+        let line_points = vec![
+            (Point::new(Mm(160.0), Mm(y_position - 3.3)), false),
+            (Point::new(Mm(188.6), Mm(y_position - 3.3)), false),
+            (Point::new(Mm(188.6), Mm(y_position + 13.0)), false),
+            (Point::new(Mm(160.0), Mm(y_position + 13.0)), false),
+        ];
+        let line = Line {
+            points: line_points,
+            is_closed: true,
+        };
+        current_layer.add_line(line);
+
+        // Número de hermano dentro del recuadro
+        current_layer.begin_text_section();
+        current_layer.set_font(&font, 11.0);
+        current_layer.set_text_cursor(Mm(169.0), Mm(y_position + 1.0));
+        current_layer.write_text(&hermano.3, &font);
+        current_layer.end_text_section();
+
+        // RECIBO ANUAL DE HERMANO
+        let recibo_box_y = y_position - 2.0;
+        let line_points = vec![
+            (Point::new(Mm(60.0), Mm(recibo_box_y - 7.0)), false),
+            (Point::new(Mm(150.0), Mm(recibo_box_y - 7.0)), false),
+            (Point::new(Mm(150.0), Mm(recibo_box_y)), false),
+            (Point::new(Mm(60.0), Mm(recibo_box_y)), false),
+        ];
+        let line = Line {
+            points: line_points,
+            is_closed: true,
+        };
+        current_layer.add_line(line);
+
+        current_layer.begin_text_section();
+        current_layer.set_font(&font_bold, 10.0);
+        current_layer.set_text_cursor(Mm(80.0), Mm(recibo_box_y - 5.0));
+        current_layer.write_text("RECIBO ANUAL DE HERMANO", &font_bold);
+        current_layer.end_text_section();
+
+        y_position -= 12.0;
+
+        // AÑO y CUOTA ANUAL
+        let ano_box_y = y_position;
+        
+        // Recuadro AÑO
+        let line_points = vec![
+            (Point::new(Mm(20.0), Mm(ano_box_y - 7.0)), false),
+            (Point::new(Mm(110.0), Mm(ano_box_y - 7.0)), false),
+            (Point::new(Mm(110.0), Mm(ano_box_y)), false),
+            (Point::new(Mm(20.0), Mm(ano_box_y)), false),
+        ];
+        let line = Line {
+            points: line_points,
+            is_closed: true,
+        };
+        current_layer.add_line(line);
+
+        current_layer.begin_text_section();
+        current_layer.set_font(&font_bold, 10.0);
+        current_layer.set_text_cursor(Mm(35.0), Mm(ano_box_y - 5.0));
+        current_layer.write_text(format!("AÑO {}              CUOTA ANUAL: {} €", cuota.anio, cuota.importe), &font_bold);
+        current_layer.end_text_section();
+
+        // Recuadro TOTAL
+        let line_points = vec![
+            (Point::new(Mm(150.0), Mm(ano_box_y - 7.0)), false),
+            (Point::new(Mm(190.0), Mm(ano_box_y - 7.0)), false),
+            (Point::new(Mm(190.0), Mm(ano_box_y)), false),
+            (Point::new(Mm(150.0), Mm(ano_box_y)), false),
+        ];
+        let line = Line {
+            points: line_points,
+            is_closed: true,
+        };
+        current_layer.add_line(line);
+
+        current_layer.begin_text_section();
+        current_layer.set_font(&font_bold, 10.0);
+        current_layer.set_text_cursor(Mm(161.0), Mm(ano_box_y - 5.0));
+        current_layer.write_text(format!("TOTAL: {} €", cuota.importe), &font_bold);
         current_layer.end_text_section();
 
         y_position -= 10.0;
 
-        // Número de hermano
+        // DATOS DEL HERMANO/A
+        let datos_box_y = y_position;
+        
+        // Recuadro de datos
+        let line_points = vec![
+            (Point::new(Mm(20.0), Mm(datos_box_y - 25.0)), false),
+            (Point::new(Mm(190.0), Mm(datos_box_y - 25.0)), false),
+            (Point::new(Mm(190.0), Mm(datos_box_y)), false),
+            (Point::new(Mm(20.0), Mm(datos_box_y)), false),
+        ];
+        let line = Line {
+            points: line_points,
+            is_closed: true,
+        };
+        current_layer.add_line(line);
+
+        // Título de la sección
         current_layer.begin_text_section();
-        current_layer.set_font(&font, 12.0);
-        current_layer.set_text_cursor(Mm(margin_left), Mm(y_position));
-        current_layer.write_text(format!("Nº Hermano: {}", hermano.3), &font);
+        current_layer.set_font(&font_bold, 8.0);
+        current_layer.set_text_cursor(Mm(22.0), Mm(datos_box_y - 4.0));
+        current_layer.write_text("DATOS DEL HERMANO/A:", &font_bold);
         current_layer.end_text_section();
 
-        y_position -= 7.0;
-
-        // Nombre
+        // D./Dña:
         current_layer.begin_text_section();
-        current_layer.set_font(&font, 12.0);
-        current_layer.set_text_cursor(Mm(margin_left), Mm(y_position));
-        current_layer.write_text(format!("Hermano/a: {}", nombre_completo), &font);
+        current_layer.set_font(&font_bold, 11.0);
+        current_layer.set_text_cursor(Mm(22.0), Mm(datos_box_y - 12.0));
+        current_layer.write_text("D./Dña: ", &font_bold);
+        current_layer.set_font(&font, 11.0);
+        current_layer.write_text(&nombre_completo, &font);
         current_layer.end_text_section();
 
-        y_position -= 7.0;
-
-        // Año
+        // Domicilio:
+        let direccion = hermano.4.as_deref().unwrap_or("");
+        let localidad = hermano.5.as_deref().unwrap_or("");
+        let provincia = hermano.6.as_deref().unwrap_or("");
+        let codigo_postal = hermano.7.as_deref().unwrap_or("");
+        
+        let domicilio = if !direccion.is_empty() {
+            let mut parts = vec![direccion.to_string()];
+            if !codigo_postal.is_empty() || !localidad.is_empty() {
+                let location = format!("{} {}", codigo_postal, localidad).trim().to_string();
+                if !location.is_empty() {
+                    parts.push(location);
+                }
+            }
+            if !provincia.is_empty() {
+                parts.push(provincia.to_string());
+            }
+            parts.join(", ")
+        } else {
+            "".to_string()
+        };
+        
         current_layer.begin_text_section();
-        current_layer.set_font(&font, 12.0);
-        current_layer.set_text_cursor(Mm(margin_left), Mm(y_position));
-        current_layer.write_text(format!("Cuota del año: {}", cuota.anio), &font);
+        current_layer.set_font(&font_bold, 11.0);
+        current_layer.set_text_cursor(Mm(22.0), Mm(datos_box_y - 20.0));
+        current_layer.write_text("Domicilio: ", &font_bold);
+        current_layer.set_font(&font, 11.0);
+        current_layer.write_text(&domicilio, &font);
         current_layer.end_text_section();
 
-        y_position -= 7.0;
+        y_position -= 30.0;
 
-        // Importe
+        // Nota aclaratoria
         current_layer.begin_text_section();
-        current_layer.set_font(&font_bold, 12.0);
-        current_layer.set_text_cursor(Mm(margin_left), Mm(y_position));
-        current_layer.write_text(format!("Importe: {:.2} €", cuota.importe), &font_bold);
+        current_layer.set_font(&font, 8.0);
+        current_layer.set_text_cursor(Mm(30.0), Mm(y_position));
+        current_layer.write_text("Este recibo, válido para el año indicado, no prueba el pago de los anteriores.", &font);
         current_layer.end_text_section();
-
-        y_position -= 7.0;
-
-        // Fecha de pago
-        if let Some(ref fecha_pago) = cuota.fecha_pago {
-            current_layer.begin_text_section();
-            current_layer.set_font(&font, 10.0);
-            current_layer.set_text_cursor(Mm(margin_left), Mm(y_position));
-            current_layer.write_text(format!("Fecha de pago: {}", fecha_pago), &font);
-            current_layer.end_text_section();
-            y_position -= 6.0;
-        }
-
-        // Método de pago
-        if let Some(ref metodo) = cuota.metodo_pago {
-            current_layer.begin_text_section();
-            current_layer.set_font(&font, 10.0);
-            current_layer.set_text_cursor(Mm(margin_left), Mm(y_position));
-            current_layer.write_text(format!("Método: {}", metodo), &font);
-            current_layer.end_text_section();
-            y_position -= 6.0;
-        }
 
         // Espacio entre recibos
-        y_position -= 15.0;
+        y_position -= 20.0;
     }
 
     // Guardar el PDF
@@ -198,6 +385,54 @@ fn marcar_recibos_generados(
             [id],
         )?;
     }
+
+    Ok(())
+}
+
+fn get_configuracion_recibo(db: &DbConnection) -> Result<Option<ConfiguracionRecibo>, anyhow::Error> {
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+
+    let result = conn.query_row(
+        "SELECT logo_path, nombre_hermandad, ubicacion, direccion FROM configuracion_recibos WHERE id = 1",
+        [],
+        |row| {
+            Ok(ConfiguracionRecibo {
+                logo_path: row.get(0)?,
+                nombre_hermandad: row.get(1)?,
+                ubicacion: row.get(2)?,
+                direccion: row.get(3)?,
+            })
+        },
+    );
+
+    match result {
+        Ok(config) => Ok(Some(config)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(e) => Err(e.into()),
+    }
+}
+
+fn guardar_configuracion_recibo(
+    db: &DbConnection,
+    config: ConfiguracionRecibo,
+) -> Result<(), anyhow::Error> {
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+
+    // Usar INSERT OR REPLACE para actualizar o insertar
+    conn.execute(
+        "INSERT OR REPLACE INTO configuracion_recibos (id, logo_path, nombre_hermandad, ubicacion, direccion, updated_at)
+         VALUES (1, ?1, ?2, ?3, ?4, CURRENT_TIMESTAMP)",
+        (
+            &config.logo_path,
+            &config.nombre_hermandad,
+            &config.ubicacion,
+            &config.direccion,
+        ),
+    )?;
 
     Ok(())
 }

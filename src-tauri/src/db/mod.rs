@@ -392,6 +392,43 @@ fn run_migrations(conn: &Connection) -> Result<(), anyhow::Error> {
         println!("Migración 1 aplicada correctamente");
     }
 
+    // Migración 2: Crear tabla configuracion_recibos
+    if current_version < 2 {
+        println!("Aplicando migración 2: Crear tabla configuracion_recibos");
+        
+        // Verificar si la tabla ya existe
+        let table_exists: bool = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='configuracion_recibos'",
+                [],
+                |row| {
+                    let count: i32 = row.get(0)?;
+                    Ok(count > 0)
+                },
+            )?;
+
+        if !table_exists {
+            conn.execute(
+                "CREATE TABLE configuracion_recibos (
+                    id INTEGER PRIMARY KEY CHECK (id = 1),
+                    logo_path TEXT,
+                    nombre_hermandad TEXT NOT NULL,
+                    ubicacion TEXT NOT NULL,
+                    direccion TEXT NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )",
+                [],
+            )?;
+            println!("Tabla 'configuracion_recibos' creada correctamente");
+        } else {
+            println!("Tabla 'configuracion_recibos' ya existe, saltando migración");
+        }
+
+        set_schema_version(conn, 2)?;
+        println!("Migración 2 aplicada correctamente");
+    }
+
     println!("Todas las migraciones completadas");
     Ok(())
 }
