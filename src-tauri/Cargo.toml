@@ -1,6 +1,6 @@
 [package]
 name = "hermanar"
-version = "0.5.0"
+version = "0.5.1"
 description = "Sistema de Gestión de Hermandades"
 authors = ["you"]
 edition = "2021"

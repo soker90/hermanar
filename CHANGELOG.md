@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.1] - 2026-02-04
+
+### Añadido
+
+- Ahora se usa el logo personalizado en la configuración de recibos (si existe)
+
+### Mejorado
+
+- Optimización del diseño de recibos: ahora caben exactamente 3 recibos por página A4
+
 ## [0.5.0] - 2026-02-03
 
 ### Añadido

@@ -22,7 +22,7 @@
     }
   },
   "productName": "Hermanar",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "identifier": "com.hermanar.app",
   "plugins": {
     "process": {
