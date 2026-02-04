@@ -114,9 +114,9 @@ fn generar_recibos_pdf(
             },
         ).unwrap_or_else(|_| ConfiguracionRecibo {
             logo_path: None,
-            nombre_hermandad: "HERMANDAD DE SAN ISIDRO LABRADOR".to_string(),
-            ubicacion: "ALCÁZAR DE SAN JUAN".to_string(),
-            direccion: "Altozano de la Inmaculada – 13600 Alcázar de San Juan (Ciudad Real)".to_string(),
+            nombre_hermandad: "NOMBRE DE LA HERMANDAD".to_string(),
+            ubicacion: "LOCALIDAD".to_string(),
+            direccion: "Dirección completa".to_string(),
         });
 
         (cuotas_con_hermanos, config)

@@ -158,7 +158,7 @@ export function ConfiguracionReciboModal({
                                         nombre_hermandad: e.target.value
                                     })
                                 }
-                                placeholder="HERMANDAD DE SAN ISIDRO LABRADOR"
+                                placeholder="Nombre de la Hermandad"
                             />
                         </div>
 
@@ -175,7 +175,7 @@ export function ConfiguracionReciboModal({
                                         ubicacion: e.target.value
                                     })
                                 }
-                                placeholder="ALCÁZAR DE SAN JUAN"
+                                placeholder="Localidad"
                             />
                         </div>
 
@@ -192,7 +192,7 @@ export function ConfiguracionReciboModal({
                                         direccion: e.target.value
                                     })
                                 }
-                                placeholder="Altozano de la Inmaculada – 13600 Alcázar de San Juan (Ciudad Real)"
+                                placeholder="Dirección Completa"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-15"
                                 rows={2}
                             />
