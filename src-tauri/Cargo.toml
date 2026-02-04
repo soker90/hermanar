@@ -4,6 +4,7 @@ version = "0.5.0"
 description = "Sistema de Gestión de Hermandades"
 authors = ["you"]
 edition = "2021"
+default-run = "hermanar"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

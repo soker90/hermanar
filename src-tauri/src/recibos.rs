@@ -134,7 +134,7 @@ fn generar_recibos_pdf(
     let mut y_position = 270.0;
     let page_height = 297.0;
     let margin_bottom = 20.0;
-    let recibo_height = 90.0; // Altura del recibo
+    let recibo_height = 83.0; // Altura real del recibo para 3 por página
 
     for (cuota, hermano) in cuotas_con_hermanos.iter() {
         // Verificar si necesitamos una nueva página
@@ -392,7 +392,7 @@ fn generar_recibos_pdf(
         current_layer.write_text(&domicilio, &font);
         current_layer.end_text_section();
 
-        y_position -= 30.0;
+        y_position -= 28.0;
 
         // Nota aclaratoria
         current_layer.begin_text_section();
@@ -401,8 +401,8 @@ fn generar_recibos_pdf(
         current_layer.write_text("Este recibo, válido para el año indicado, no prueba el pago de los anteriores.", &font);
         current_layer.end_text_section();
 
-        // Espacio entre recibos
-        y_position -= 20.0;
+        // Espacio entre recibos (distribuido para 3 por página)
+        y_position -= 14.0;
     }
 
     // Guardar el PDF
