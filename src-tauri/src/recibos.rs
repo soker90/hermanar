@@ -151,8 +151,65 @@ fn generar_recibos_pdf(
             hermano.2.as_deref().unwrap_or("")
         );
 
-        // TODO: Implementar inserción de logo cuando config.logo_path esté presente
-        // Requiere agregar dependencia de image y convertir PNG/JPG a formato compatible con printpdf
+        // Insertar logo si está configurado
+        if let Some(logo_path) = &config.logo_path {
+            if std::path::Path::new(logo_path).exists() {
+                match ::image::open(logo_path) {
+                    Ok(img) => {
+                        // Convertir a RGB
+                        let img_rgb = img.to_rgb8();
+                        let (width, height) = img_rgb.dimensions();
+                        
+                        // Dimensiones del logo - altura fija de 139 píxeles, ancho proporcional
+                        let target_height_px: f32 = 139.0;
+                        let aspect_ratio = width as f32 / height as f32;
+                        let target_width_px = target_height_px * aspect_ratio;
+                        
+                        // Convertir píxeles a mm (asumiendo 72 DPI estándar: 1 inch = 72px = 25.4mm)
+                        let px_to_mm = 25.4 / 72.0;
+                        let logo_width_mm = target_width_px * px_to_mm;
+                        let logo_height_mm = target_height_px * px_to_mm;
+                        
+                        // Posición del logo (mucho más arriba)
+                        let logo_x = 15.0;
+                        let logo_y = y_position + 36.5;
+                        
+                        // Crear ImageXObject desde el buffer de imagen
+                        let image_bytes = img_rgb.into_raw();
+                        let image_xobject = ImageXObject {
+                            width: Px(width as usize),
+                            height: Px(height as usize),
+                            color_space: ColorSpace::Rgb,
+                            bits_per_component: ColorBits::Bit8,
+                            interpolate: true,
+                            image_data: image_bytes,
+                            image_filter: None,
+                            clipping_bbox: None,
+                            smask: None,
+                        };
+                        
+                        // Crear imagen para printpdf
+                        let image_data = Image::from(image_xobject);
+                        
+                        // Añadir imagen al documento
+                        image_data.add_to_layer(
+                            current_layer.clone(),
+                            ImageTransform {
+                                translate_x: Some(Mm(logo_x)),
+                                translate_y: Some(Mm(logo_y - logo_height_mm)),
+                                rotate: None,
+                                scale_x: Some(logo_width_mm / (width as f32 * 0.26458)),
+                                scale_y: Some(logo_height_mm / (height as f32 * 0.26458)),
+                                dpi: Some(300.0),
+                            },
+                        );
+                    }
+                    Err(_) => {
+                        // Ignorar si no se puede cargar el logo
+                    }
+                }
+            }
+        }
         
         // ENCABEZADO - Título de la hermandad
         current_layer.begin_text_section();
