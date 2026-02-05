@@ -29,7 +29,3 @@ Pobla la base de datos con datos ficticios para pruebas.
 
 - La aplicación debe haberse ejecutado al menos una vez para crear la base de datos
 - Después de ejecutar, recarga la aplicación para ver los datos
-
----
-
-Para más detalles sobre el script de seed, consulta `src-tauri/src/bin/README.md`
