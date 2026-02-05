@@ -1,10 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [0.6.0] - 2026-02-05
 
 ### Añadido
 
 - Campo fecha de baja obligatorio para hermanos inactivos
+- Fecha de alta del hermano en recibos de cuota (formato DD/MM/YYYY)
 
 ## [0.5.1] - 2026-02-04
 

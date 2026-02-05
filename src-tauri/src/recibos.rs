@@ -83,7 +83,7 @@ fn generar_recibos_pdf(
         let mut cuotas_con_hermanos = Vec::new();
         for cuota in cuotas {
             let hermano = conn.query_row(
-                "SELECT nombre, primer_apellido, segundo_apellido, numero_hermano, direccion, localidad, provincia, codigo_postal
+                "SELECT nombre, primer_apellido, segundo_apellido, numero_hermano, direccion, localidad, provincia, codigo_postal, fecha_alta
                  FROM hermanos WHERE id = ?1",
                 [cuota.hermano_id],
                 |row| Ok((
@@ -95,6 +95,7 @@ fn generar_recibos_pdf(
                     row.get::<_, Option<String>>(5)?,
                     row.get::<_, Option<String>>(6)?,
                     row.get::<_, Option<String>>(7)?,
+                    row.get::<_, String>(8)?,
                 )),
             )?;
             cuotas_con_hermanos.push((cuota, hermano));
@@ -360,6 +361,27 @@ fn generar_recibos_pdf(
         current_layer.write_text("D./Dña: ", &font_bold);
         current_layer.set_font(&font, 11.0);
         current_layer.write_text(&nombre_completo, &font);
+        current_layer.end_text_section();
+
+        // Fecha de alta (en la misma línea que el nombre, a la derecha):
+        let fecha_alta = &hermano.8;
+        // Convertir de YYYY-MM-DD a DD/MM/YYYY
+        let fecha_formateada = if let Some(parts) = fecha_alta.split('-').collect::<Vec<_>>().get(0..3) {
+            if parts.len() == 3 {
+                format!("{}/{}/{}", parts[2], parts[1], parts[0])
+            } else {
+                fecha_alta.to_string()
+            }
+        } else {
+            fecha_alta.to_string()
+        };
+        
+        current_layer.begin_text_section();
+        current_layer.set_font(&font_bold, 9.0);
+        current_layer.set_text_cursor(Mm(140.0), Mm(datos_box_y - 12.0));
+        current_layer.write_text("Fecha de Alta: ", &font_bold);
+        current_layer.set_font(&font, 9.0);
+        current_layer.write_text(&fecha_formateada, &font);
         current_layer.end_text_section();
 
         // Domicilio:
