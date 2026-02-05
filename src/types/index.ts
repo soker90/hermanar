@@ -26,6 +26,7 @@ export interface Hermano extends Record<string, unknown> {
     hermano_aval_1?: string
     hermano_aval_2?: string
     activo: boolean
+    fecha_baja?: string // ISO format YYYY-MM-DD
     observaciones?: string
     created_at?: string
     updated_at?: string
@@ -128,6 +129,7 @@ export interface HermanoFormData {
     hermano_aval_1?: string
     hermano_aval_2?: string
     activo: boolean
+    fecha_baja?: string
     observaciones?: string
 }
 

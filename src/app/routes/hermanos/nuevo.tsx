@@ -44,7 +44,8 @@ export function Component() {
         dni_representante_legal: '',
         hermano_aval_1: '',
         hermano_aval_2: '',
-        activo: true
+        activo: true,
+        fecha_baja: ''
     })
 
     useEffect(() => {
@@ -82,7 +83,8 @@ export function Component() {
                 : undefined,
             dni_representante_legal: formData.autorizacion_menores
                 ? formData.dni_representante_legal || undefined
-                : undefined
+                : undefined,
+            fecha_baja: formData.fecha_baja || undefined
         }
     }
 
@@ -91,6 +93,15 @@ export function Component() {
         setLoading(true)
 
         try {
+            // Validar que si el hermano está inactivo, tenga fecha de baja
+            if (!formData.activo && !formData.fecha_baja) {
+                toast.error(
+                    'La fecha de baja es obligatoria para hermanos inactivos'
+                )
+                setLoading(false)
+                return
+            }
+
             const dataToSend = prepareHermanoData()
             await invoke('create_hermano_cmd', { hermano: dataToSend })
             toast.success('Hermano creado correctamente')
@@ -147,6 +158,21 @@ export function Component() {
                                     { value: '0', label: 'Inactivo' }
                                 ]}
                             />
+                            {!formData.activo && (
+                                <Input
+                                    label="Fecha de Baja"
+                                    type="date"
+                                    value={formData.fecha_baja}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            fecha_baja: e.target.value
+                                        })
+                                    }
+                                    required
+                                    helperText="Obligatorio cuando el hermano está inactivo"
+                                />
+                            )}
                         </div>
 
                         <Select

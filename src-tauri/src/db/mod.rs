@@ -67,6 +67,7 @@ pub struct Hermano {
     pub hermano_aval_1: Option<String>,
     pub hermano_aval_2: Option<String>,
     pub activo: bool,
+    pub fecha_baja: Option<String>,
     pub observaciones: Option<String>,
     pub created_at: Option<String>,
     pub updated_at: Option<String>,
@@ -427,6 +428,35 @@ fn run_migrations(conn: &Connection) -> Result<(), anyhow::Error> {
 
         set_schema_version(conn, 2)?;
         println!("Migración 2 aplicada correctamente");
+    }
+
+    // Migración 3: Añadir campo fecha_baja a hermanos
+    if current_version < 3 {
+        println!("Aplicando migración 3: Añadir campo fecha_baja");
+        
+        // Verificar si la columna ya existe
+        let column_exists: bool = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('hermanos') WHERE name='fecha_baja'",
+                [],
+                |row| {
+                    let count: i32 = row.get(0)?;
+                    Ok(count > 0)
+                },
+            )?;
+
+        if !column_exists {
+            conn.execute(
+                "ALTER TABLE hermanos ADD COLUMN fecha_baja TEXT",
+                [],
+            )?;
+            println!("Campo 'fecha_baja' añadido a la tabla hermanos");
+        } else {
+            println!("Campo 'fecha_baja' ya existe, saltando migración");
+        }
+
+        set_schema_version(conn, 3)?;
+        println!("Migración 3 aplicada correctamente");
     }
 
     println!("Todas las migraciones completadas");

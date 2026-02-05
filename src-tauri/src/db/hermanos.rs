@@ -30,9 +30,10 @@ impl Hermano {
             hermano_aval_1: row.get(23)?,
             hermano_aval_2: row.get(24)?,
             activo: row.get(25)?,
-            observaciones: row.get(26)?,
-            created_at: row.get(27)?,
-            updated_at: row.get(28)?,
+            fecha_baja: row.get(26)?,
+            observaciones: row.get(27)?,
+            created_at: row.get(28)?,
+            updated_at: row.get(29)?,
         })
     }
 }
@@ -45,7 +46,7 @@ pub fn get_all_hermanos(db: &DbConnection) -> Result<Vec<Hermano>, anyhow::Error
                 familia_id, telefono, email, direccion, localidad, provincia, codigo_postal,
                 parroquia_bautismo, localidad_bautismo, provincia_bautismo,
                 autorizacion_menores, nombre_representante_legal, dni_representante_legal,
-                hermano_aval_1, hermano_aval_2, activo, observaciones, created_at, updated_at
+                hermano_aval_1, hermano_aval_2, activo, fecha_baja, observaciones, created_at, updated_at
          FROM hermanos
          ORDER BY numero_hermano"
     )?;
@@ -66,7 +67,7 @@ pub fn get_hermanos_activos(db: &DbConnection) -> Result<Vec<Hermano>, anyhow::E
                 familia_id, telefono, email, direccion, localidad, provincia, codigo_postal,
                 parroquia_bautismo, localidad_bautismo, provincia_bautismo,
                 autorizacion_menores, nombre_representante_legal, dni_representante_legal,
-                hermano_aval_1, hermano_aval_2, activo, observaciones, created_at, updated_at
+                hermano_aval_1, hermano_aval_2, activo, fecha_baja, observaciones, created_at, updated_at
          FROM hermanos
          WHERE activo = 1
          ORDER BY numero_hermano"
@@ -88,7 +89,7 @@ pub fn get_hermano_by_id(db: &DbConnection, id: i32) -> Result<Option<Hermano>, 
                 familia_id, telefono, email, direccion, localidad, provincia, codigo_postal,
                 parroquia_bautismo, localidad_bautismo, provincia_bautismo,
                 autorizacion_menores, nombre_representante_legal, dni_representante_legal,
-                hermano_aval_1, hermano_aval_2, activo, observaciones, created_at, updated_at
+                hermano_aval_1, hermano_aval_2, activo, fecha_baja, observaciones, created_at, updated_at
          FROM hermanos
          WHERE id = ?1"
     )?;
@@ -110,7 +111,7 @@ pub fn search_hermanos(db: &DbConnection, query: &str) -> Result<Vec<Hermano>, a
                 familia_id, telefono, email, direccion, localidad, provincia, codigo_postal,
                 parroquia_bautismo, localidad_bautismo, provincia_bautismo,
                 autorizacion_menores, nombre_representante_legal, dni_representante_legal,
-                hermano_aval_1, hermano_aval_2, activo, observaciones, created_at, updated_at
+                hermano_aval_1, hermano_aval_2, activo, fecha_baja, observaciones, created_at, updated_at
          FROM hermanos
          WHERE (nombre LIKE ?1 OR primer_apellido LIKE ?1 OR segundo_apellido LIKE ?1 OR numero_hermano LIKE ?1 OR dni LIKE ?1)
          ORDER BY numero_hermano"
@@ -132,7 +133,7 @@ pub fn get_hermanos_by_familia(db: &DbConnection, familia_id: i32) -> Result<Vec
                 familia_id, telefono, email, direccion, localidad, provincia, codigo_postal,
                 parroquia_bautismo, localidad_bautismo, provincia_bautismo,
                 autorizacion_menores, nombre_representante_legal, dni_representante_legal,
-                hermano_aval_1, hermano_aval_2, activo, observaciones, created_at, updated_at
+                hermano_aval_1, hermano_aval_2, activo, fecha_baja, observaciones, created_at, updated_at
          FROM hermanos
          WHERE familia_id = ?1
          ORDER BY numero_hermano"
@@ -189,8 +190,8 @@ pub fn create_hermano(db: &DbConnection, hermano: &Hermano) -> Result<i32, anyho
           localidad_nacimiento, provincia_nacimiento, fecha_alta, familia_id, telefono, email,
           direccion, localidad, provincia, codigo_postal, parroquia_bautismo, localidad_bautismo,
           provincia_bautismo, autorizacion_menores, nombre_representante_legal, dni_representante_legal,
-          hermano_aval_1, hermano_aval_2, activo, observaciones)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26)",
+          hermano_aval_1, hermano_aval_2, activo, fecha_baja, observaciones)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25, ?26, ?27)",
         params![
             numero_hermano,
             hermano.nombre,
@@ -217,6 +218,7 @@ pub fn create_hermano(db: &DbConnection, hermano: &Hermano) -> Result<i32, anyho
             hermano.hermano_aval_1,
             hermano.hermano_aval_2,
             hermano.activo,
+            hermano.fecha_baja,
             observaciones,
         ],
     )?;
@@ -253,9 +255,9 @@ pub fn update_hermano(db: &DbConnection, id: i32, hermano: &Hermano) -> Result<(
              localidad = ?14, provincia = ?15, codigo_postal = ?16, parroquia_bautismo = ?17,
              localidad_bautismo = ?18, provincia_bautismo = ?19, autorizacion_menores = ?20,
              nombre_representante_legal = ?21, dni_representante_legal = ?22,
-             hermano_aval_1 = ?23, hermano_aval_2 = ?24, activo = ?25, observaciones = ?26,
+             hermano_aval_1 = ?23, hermano_aval_2 = ?24, activo = ?25, fecha_baja = ?26, observaciones = ?27,
              updated_at = CURRENT_TIMESTAMP
-         WHERE id = ?27",
+         WHERE id = ?28",
         params![
             hermano.numero_hermano,
             hermano.nombre,
@@ -282,6 +284,7 @@ pub fn update_hermano(db: &DbConnection, id: i32, hermano: &Hermano) -> Result<(
             hermano.hermano_aval_1,
             hermano.hermano_aval_2,
             hermano.activo,
+            hermano.fecha_baja,
             observaciones,
             id,
         ],

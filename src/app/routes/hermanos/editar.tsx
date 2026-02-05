@@ -48,6 +48,7 @@ export function Component() {
         hermano_aval_1: '',
         hermano_aval_2: '',
         activo: true,
+        fecha_baja: '',
         observaciones: ''
     })
 
@@ -100,6 +101,7 @@ export function Component() {
                         hermano_aval_1: hermanoData.hermano_aval_1 || '',
                         hermano_aval_2: hermanoData.hermano_aval_2 || '',
                         activo: hermanoData.activo ?? true,
+                        fecha_baja: hermanoData.fecha_baja || '',
                         observaciones: hermanoData.observaciones || ''
                     })
                 }
@@ -119,6 +121,15 @@ export function Component() {
         setLoading(true)
 
         try {
+            // Validar que si el hermano está inactivo, tenga fecha de baja
+            if (!formData.activo && !formData.fecha_baja) {
+                toast.error(
+                    'La fecha de baja es obligatoria para hermanos inactivos'
+                )
+                setLoading(false)
+                return
+            }
+
             // Preparar datos para enviar, convirtiendo cadenas vacías a undefined
             const dataToSend = {
                 ...formData,
@@ -145,6 +156,7 @@ export function Component() {
                 dni_representante_legal: formData.autorizacion_menores
                     ? formData.dni_representante_legal || undefined
                     : undefined,
+                fecha_baja: formData.fecha_baja || undefined,
                 observaciones: formData.observaciones || undefined
             }
 
@@ -214,6 +226,21 @@ export function Component() {
                                     { value: '0', label: 'Inactivo' }
                                 ]}
                             />
+                            {!formData.activo && (
+                                <Input
+                                    label="Fecha de Baja"
+                                    type="date"
+                                    value={formData.fecha_baja}
+                                    onChange={(e) =>
+                                        setFormData({
+                                            ...formData,
+                                            fecha_baja: e.target.value
+                                        })
+                                    }
+                                    required
+                                    helperText="Obligatorio cuando el hermano está inactivo"
+                                />
+                            )}
                         </div>
 
                         <Select

@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+### Añadido
+
+- Campo fecha de baja obligatorio para hermanos inactivos
+
 ## [0.5.1] - 2026-02-04
 
 ### Añadido
