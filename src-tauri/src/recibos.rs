@@ -1,8 +1,8 @@
-use crate::db::{DbConnection, Cuota};
+use crate::db::{Cuota, DbConnection};
 use printpdf::*;
+use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::BufWriter;
-use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfiguracionRecibo {
@@ -43,10 +43,7 @@ pub fn guardar_configuracion_recibo_cmd(
     guardar_configuracion_recibo(&db, config).map_err(|e| e.to_string())
 }
 
-fn generar_recibos_pdf(
-    db: &DbConnection,
-    cuotas_ids: Vec<i32>,
-) -> Result<String, anyhow::Error> {
+fn generar_recibos_pdf(db: &DbConnection, cuotas_ids: Vec<i32>) -> Result<String, anyhow::Error> {
     // Obtener las cuotas, configuración y datos de hermanos
     let (cuotas_con_hermanos, config) = {
         let conn = db
@@ -124,8 +121,7 @@ fn generar_recibos_pdf(
     }; // Liberamos el lock aquí
 
     // Crear el PDF
-    let (doc, page1, layer1) =
-        PdfDocument::new("Recibos", Mm(210.0), Mm(297.0), "Capa 1");
+    let (doc, page1, layer1) = PdfDocument::new("Recibos", Mm(210.0), Mm(297.0), "Capa 1");
     let font = doc.add_builtin_font(BuiltinFont::Helvetica).unwrap();
     let font_bold = doc.add_builtin_font(BuiltinFont::HelveticaBold).unwrap();
 
@@ -160,21 +156,21 @@ fn generar_recibos_pdf(
                         // Convertir a RGB
                         let img_rgb = img.to_rgb8();
                         let (width, height) = img_rgb.dimensions();
-                        
+
                         // Dimensiones del logo - altura fija de 139 píxeles, ancho proporcional
                         let target_height_px: f32 = 139.0;
                         let aspect_ratio = width as f32 / height as f32;
                         let target_width_px = target_height_px * aspect_ratio;
-                        
+
                         // Convertir píxeles a mm (asumiendo 72 DPI estándar: 1 inch = 72px = 25.4mm)
                         let px_to_mm = 25.4 / 72.0;
                         let logo_width_mm = target_width_px * px_to_mm;
                         let logo_height_mm = target_height_px * px_to_mm;
-                        
+
                         // Posición del logo (mucho más arriba)
                         let logo_x = 15.0;
                         let logo_y = y_position + 36.5;
-                        
+
                         // Crear ImageXObject desde el buffer de imagen
                         let image_bytes = img_rgb.into_raw();
                         let image_xobject = ImageXObject {
@@ -188,10 +184,10 @@ fn generar_recibos_pdf(
                             clipping_bbox: None,
                             smask: None,
                         };
-                        
+
                         // Crear imagen para printpdf
                         let image_data = Image::from(image_xobject);
-                        
+
                         // Añadir imagen al documento
                         image_data.add_to_layer(
                             current_layer.clone(),
@@ -211,7 +207,7 @@ fn generar_recibos_pdf(
                 }
             }
         }
-        
+
         // ENCABEZADO - Título de la hermandad
         current_layer.begin_text_section();
         current_layer.set_font(&font_bold, 10.0);
@@ -290,7 +286,7 @@ fn generar_recibos_pdf(
 
         // AÑO y CUOTA ANUAL
         let ano_box_y = y_position;
-        
+
         // Recuadro AÑO
         let line_points = vec![
             (Point::new(Mm(20.0), Mm(ano_box_y - 7.0)), false),
@@ -307,7 +303,13 @@ fn generar_recibos_pdf(
         current_layer.begin_text_section();
         current_layer.set_font(&font_bold, 10.0);
         current_layer.set_text_cursor(Mm(35.0), Mm(ano_box_y - 5.0));
-        current_layer.write_text(format!("AÑO {}              CUOTA ANUAL: {} €", cuota.anio, cuota.importe), &font_bold);
+        current_layer.write_text(
+            format!(
+                "AÑO {}              CUOTA ANUAL: {} €",
+                cuota.anio, cuota.importe
+            ),
+            &font_bold,
+        );
         current_layer.end_text_section();
 
         // Recuadro TOTAL
@@ -333,7 +335,7 @@ fn generar_recibos_pdf(
 
         // DATOS DEL HERMANO/A
         let datos_box_y = y_position;
-        
+
         // Recuadro de datos
         let line_points = vec![
             (Point::new(Mm(20.0), Mm(datos_box_y - 25.0)), false),
@@ -366,16 +368,17 @@ fn generar_recibos_pdf(
         // Fecha de alta (en la misma línea que el nombre, a la derecha):
         let fecha_alta = &hermano.8;
         // Convertir de YYYY-MM-DD a DD/MM/YYYY
-        let fecha_formateada = if let Some(parts) = fecha_alta.split('-').collect::<Vec<_>>().get(0..3) {
-            if parts.len() == 3 {
-                format!("{}/{}/{}", parts[2], parts[1], parts[0])
+        let fecha_formateada =
+            if let Some(parts) = fecha_alta.split('-').collect::<Vec<_>>().get(0..3) {
+                if parts.len() == 3 {
+                    format!("{}/{}/{}", parts[2], parts[1], parts[0])
+                } else {
+                    fecha_alta.to_string()
+                }
             } else {
                 fecha_alta.to_string()
-            }
-        } else {
-            fecha_alta.to_string()
-        };
-        
+            };
+
         current_layer.begin_text_section();
         current_layer.set_font(&font_bold, 9.0);
         current_layer.set_text_cursor(Mm(140.0), Mm(datos_box_y - 12.0));
@@ -389,11 +392,13 @@ fn generar_recibos_pdf(
         let localidad = hermano.5.as_deref().unwrap_or("");
         let provincia = hermano.6.as_deref().unwrap_or("");
         let codigo_postal = hermano.7.as_deref().unwrap_or("");
-        
+
         let domicilio = if !direccion.is_empty() {
             let mut parts = vec![direccion.to_string()];
             if !codigo_postal.is_empty() || !localidad.is_empty() {
-                let location = format!("{} {}", codigo_postal, localidad).trim().to_string();
+                let location = format!("{} {}", codigo_postal, localidad)
+                    .trim()
+                    .to_string();
                 if !location.is_empty() {
                     parts.push(location);
                 }
@@ -405,7 +410,7 @@ fn generar_recibos_pdf(
         } else {
             "".to_string()
         };
-        
+
         current_layer.begin_text_section();
         current_layer.set_font(&font_bold, 11.0);
         current_layer.set_text_cursor(Mm(22.0), Mm(datos_box_y - 20.0));
@@ -420,7 +425,10 @@ fn generar_recibos_pdf(
         current_layer.begin_text_section();
         current_layer.set_font(&font, 8.0);
         current_layer.set_text_cursor(Mm(30.0), Mm(y_position));
-        current_layer.write_text("Este recibo, válido para el año indicado, no prueba el pago de los anteriores.", &font);
+        current_layer.write_text(
+            "Este recibo, válido para el año indicado, no prueba el pago de los anteriores.",
+            &font,
+        );
         current_layer.end_text_section();
 
         // Espacio entre recibos (distribuido para 3 por página)
@@ -431,7 +439,7 @@ fn generar_recibos_pdf(
     let documents_dir = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
         .unwrap_or_else(|_| ".".to_string());
-    
+
     let pdf_path = format!(
         "{}/Documentos/recibos_{}.pdf",
         documents_dir,
@@ -450,10 +458,7 @@ fn generar_recibos_pdf(
     Ok(pdf_path)
 }
 
-fn marcar_recibos_generados(
-    db: &DbConnection,
-    cuotas_ids: Vec<i32>,
-) -> Result<(), anyhow::Error> {
+fn marcar_recibos_generados(db: &DbConnection, cuotas_ids: Vec<i32>) -> Result<(), anyhow::Error> {
     let conn = db
         .lock()
         .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
@@ -468,7 +473,9 @@ fn marcar_recibos_generados(
     Ok(())
 }
 
-fn get_configuracion_recibo(db: &DbConnection) -> Result<Option<ConfiguracionRecibo>, anyhow::Error> {
+fn get_configuracion_recibo(
+    db: &DbConnection,
+) -> Result<Option<ConfiguracionRecibo>, anyhow::Error> {
     let conn = db
         .lock()
         .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;

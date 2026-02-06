@@ -4,4 +4,3 @@
 fn main() {
     hermanar_lib::run()
 }
-

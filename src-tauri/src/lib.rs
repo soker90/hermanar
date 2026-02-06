@@ -1,7 +1,7 @@
-mod db;
-mod commands;
-mod recibos;
 mod backup;
+mod commands;
+mod db;
+mod recibos;
 
 #[cfg(test)]
 mod tests;

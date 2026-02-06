@@ -10,6 +10,7 @@
 [![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://reactjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://typescriptlang.org)
 [![Rust](https://img.shields.io/badge/Rust-1.70+-orange.svg)](https://rust-lang.org)
+[![CI](https://github.com/soker90/hermanar2/actions/workflows/ci.yml/badge.svg)](https://github.com/soker90/hermanar2/actions/workflows/ci.yml)
 
 [Características](#características) • [Instalación](#instalación) • [Desarrollo](#desarrollo) • [Compilación](#compilación)
 
@@ -93,7 +94,7 @@ Descarga la última versión desde la [página de releases](https://github.com/t
 
 ### Prerrequisitos
 
-- [Node.js](https://nodejs.org) 20 o superior
+- [Node.js](https://nodejs.org) - Versión especificada en `.nvmrc` (recomendado usar [nvm](https://github.com/nvm-sh/nvm) o [volta](https://volta.sh/))
 - [pnpm](https://pnpm.io) 9 o superior
 - [Rust](https://rustup.rs) 1.70 o superior
 - Dependencias específicas de [Tauri](https://tauri.app/v1/guides/getting-started/prerequisites)
@@ -107,13 +108,19 @@ Descarga la última versión desde la [página de releases](https://github.com/t
     cd hermanar
     ```
 
-2. **Instalar dependencias**
+2. **Usar la versión correcta de Node.js** (si usas nvm)
+
+    ```bash
+    nvm use
+    ```
+
+3. **Instalar dependencias**
 
     ```bash
     pnpm install
     ```
 
-3. **Iniciar en modo desarrollo**
+4. **Iniciar en modo desarrollo**
     ```bash
     pnpm dev
     ```
@@ -225,8 +232,55 @@ pnpm tauri build      # Compila la aplicación completa
 # Calidad de código
 pnpm lint             # Ejecuta ESLint
 pnpm format           # Formatea el código con Prettier
-pnpm type-check       # Verifica tipos TypeScript
+pnpm format:check     # Verifica formato sin modificar
+pnpm test             # Ejecuta tests del backend (Rust)
+
+# Backend (Rust)
+cd src-tauri && cargo fmt              # Formatea código Rust
+cd src-tauri && cargo clippy           # Linter de Rust
+cd src-tauri && cargo test             # Tests unitarios
 ```
+
+## 🔄 CI/CD y Quality Assurance
+
+El proyecto utiliza **GitHub Actions** para ejecutar automáticamente verificaciones de calidad en cada commit y pull request.
+
+### Pipeline de CI
+
+El pipeline ejecuta las siguientes comprobaciones:
+
+✅ **Frontend**
+
+- ESLint (linting)
+- Prettier (formato de código)
+- TypeScript compilation
+- Vite build
+
+✅ **Backend (Rust)**
+
+- Clippy (linting)
+- rustfmt (formato de código)
+- Cargo build (compilación)
+- Tests (62 tests unitarios y de integración)
+
+### Comandos de Verificación Local
+
+Antes de hacer commit, asegúrate de que tu código pasa todas las verificaciones:
+
+```bash
+# Frontend
+pnpm run lint
+pnpm run format:check
+pnpm run build
+
+# Backend
+cd src-tauri
+cargo fmt --check
+cargo clippy --all-targets --all-features -- -D warnings
+cargo test
+```
+
+Para más información, consulta la [documentación del pipeline CI/CD](./doc/CI_CD_PIPELINE.md).
 
 ## 📄 Base de Datos
 

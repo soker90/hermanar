@@ -1,5 +1,5 @@
-use rusqlite::{params, Result, Row};
 use crate::db::{Cuota, DbConnection, EstadisticasCuotas};
+use rusqlite::{params, Result, Row};
 
 impl Cuota {
     fn from_row(row: &Row) -> Result<Self, rusqlite::Error> {
@@ -20,78 +20,87 @@ impl Cuota {
 }
 
 pub fn get_all_cuotas(db: &DbConnection) -> Result<Vec<Cuota>, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
         "SELECT id, hermano_id, anio, importe, pagado,
                 fecha_pago, metodo_pago, observaciones, recibo, created_at, updated_at
          FROM cuotas
-         ORDER BY anio DESC, hermano_id"
+         ORDER BY anio DESC, hermano_id",
     )?;
 
-    let cuotas = stmt.query_map([], |row| {
-        Cuota::from_row(row)
-    })?
-    .collect::<Result<Vec<_>, _>>()?;
+    let cuotas = stmt
+        .query_map([], Cuota::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(cuotas)
 }
 
-pub fn get_cuotas_by_hermano(db: &DbConnection, hermano_id: i32) -> Result<Vec<Cuota>, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+pub fn get_cuotas_by_hermano(
+    db: &DbConnection,
+    hermano_id: i32,
+) -> Result<Vec<Cuota>, anyhow::Error> {
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
         "SELECT id, hermano_id, anio, importe, pagado,
                 fecha_pago, metodo_pago, observaciones, recibo, created_at, updated_at
          FROM cuotas
          WHERE hermano_id = ?1
-         ORDER BY anio DESC"
+         ORDER BY anio DESC",
     )?;
 
-    let cuotas = stmt.query_map([hermano_id], |row| {
-        Cuota::from_row(row)
-    })?
-    .collect::<Result<Vec<_>, _>>()?;
+    let cuotas = stmt
+        .query_map([hermano_id], Cuota::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(cuotas)
 }
 
 pub fn get_cuotas_by_year(db: &DbConnection, anio: i32) -> Result<Vec<Cuota>, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
         "SELECT id, hermano_id, anio, importe, pagado,
                 fecha_pago, metodo_pago, observaciones, recibo, created_at, updated_at
          FROM cuotas
          WHERE anio = ?1
-         ORDER BY hermano_id"
+         ORDER BY hermano_id",
     )?;
 
-    let cuotas = stmt.query_map([anio], |row| {
-        Cuota::from_row(row)
-    })?
-    .collect::<Result<Vec<_>, _>>()?;
+    let cuotas = stmt
+        .query_map([anio], Cuota::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(cuotas)
 }
 
 pub fn get_cuotas_pendientes(db: &DbConnection) -> Result<Vec<Cuota>, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
         "SELECT id, hermano_id, anio, importe, pagado,
                 fecha_pago, metodo_pago, observaciones, recibo, created_at, updated_at
          FROM cuotas
          WHERE pagado = 0
-         ORDER BY anio ASC, hermano_id"
+         ORDER BY anio ASC, hermano_id",
     )?;
 
-    let cuotas = stmt.query_map([], |row| {
-        Cuota::from_row(row)
-    })?
-    .collect::<Result<Vec<_>, _>>()?;
+    let cuotas = stmt
+        .query_map([], Cuota::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(cuotas)
 }
 
 pub fn create_cuota(db: &DbConnection, cuota: &Cuota) -> Result<i32, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     conn.execute(
         "INSERT INTO cuotas
@@ -113,7 +122,9 @@ pub fn create_cuota(db: &DbConnection, cuota: &Cuota) -> Result<i32, anyhow::Err
 }
 
 pub fn update_cuota(db: &DbConnection, id: i32, cuota: &Cuota) -> Result<(), anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     conn.execute(
         "UPDATE cuotas
@@ -137,8 +148,15 @@ pub fn update_cuota(db: &DbConnection, id: i32, cuota: &Cuota) -> Result<(), any
     Ok(())
 }
 
-pub fn marcar_cuota_pagada(db: &DbConnection, id: i32, fecha_pago: &str, metodo_pago: &str) -> Result<(), anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+pub fn marcar_cuota_pagada(
+    db: &DbConnection,
+    id: i32,
+    fecha_pago: &str,
+    metodo_pago: &str,
+) -> Result<(), anyhow::Error> {
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     conn.execute(
         "UPDATE cuotas
@@ -151,32 +169,37 @@ pub fn marcar_cuota_pagada(db: &DbConnection, id: i32, fecha_pago: &str, metodo_
 }
 
 pub fn delete_cuota(db: &DbConnection, id: i32) -> Result<(), anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     conn.execute("DELETE FROM cuotas WHERE id = ?1", [id])?;
 
     Ok(())
 }
 
-pub fn generar_cuotas_anio(db: &DbConnection, anio: i32, importe: f64) -> Result<i32, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+pub fn generar_cuotas_anio(
+    db: &DbConnection,
+    anio: i32,
+    importe: f64,
+) -> Result<i32, anyhow::Error> {
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     let mut stmt = conn.prepare("SELECT id FROM hermanos WHERE activo = 1")?;
-    let hermano_ids: Result<Vec<i32>, _> = stmt.query_map([], |row| {
-        Ok(row.get::<_, i32>(0)?)
-    })?.collect();
+    let hermano_ids: Result<Vec<i32>, _> = stmt
+        .query_map([], |row| row.get::<_, i32>(0))?
+        .collect();
 
     let hermano_ids = hermano_ids?;
     let mut creadas = 0;
 
     for hermano_id in hermano_ids {
-        let mut check_stmt = conn.prepare(
-            "SELECT COUNT(*) FROM cuotas WHERE hermano_id = ?1 AND anio = ?2"
-        )?;
+        let mut check_stmt =
+            conn.prepare("SELECT COUNT(*) FROM cuotas WHERE hermano_id = ?1 AND anio = ?2")?;
 
-        let existe: i32 = check_stmt.query_row(params![hermano_id, anio], |row| {
-            row.get(0)
-        })?;
+        let existe: i32 = check_stmt.query_row(params![hermano_id, anio], |row| row.get(0))?;
 
         if existe == 0 {
             conn.execute(
@@ -191,8 +214,13 @@ pub fn generar_cuotas_anio(db: &DbConnection, anio: i32, importe: f64) -> Result
     Ok(creadas)
 }
 
-pub fn get_estadisticas_cuotas(db: &DbConnection, anio: Option<i32>) -> Result<EstadisticasCuotas, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+pub fn get_estadisticas_cuotas(
+    db: &DbConnection,
+    anio: Option<i32>,
+) -> Result<EstadisticasCuotas, anyhow::Error> {
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     let where_clause = if let Some(year) = anio {
         format!("WHERE anio = {}", year)
@@ -215,7 +243,7 @@ pub fn get_estadisticas_cuotas(db: &DbConnection, anio: Option<i32>) -> Result<E
         Ok((
             row.get::<_, f64>(0)?,
             row.get::<_, i32>(1)?,
-            row.get::<_, i32>(2)?
+            row.get::<_, i32>(2)?,
         ))
     })?;
 
@@ -244,16 +272,13 @@ pub fn get_estadisticas_cuotas(db: &DbConnection, anio: Option<i32>) -> Result<E
                  CASE WHEN COUNT(CASE WHEN pagado = 0 THEN 1 END) > 0 THEN 1 ELSE 0 END as moroso
              FROM cuotas
              GROUP BY hermano_id
-         )".to_string()
+         )"
+        .to_string()
     };
 
     let mut hermanos_stmt = conn.prepare(&hermanos_query)?;
-    let (hermanos_al_dia, hermanos_morosos) = hermanos_stmt.query_row([], |row| {
-        Ok((
-            row.get::<_, i32>(0)?,
-            row.get::<_, i32>(1)?
-        ))
-    })?;
+    let (hermanos_al_dia, hermanos_morosos) =
+        hermanos_stmt.query_row([], |row| Ok((row.get::<_, i32>(0)?, row.get::<_, i32>(1)?)))?;
 
     Ok(EstadisticasCuotas {
         total_recaudado,
@@ -269,15 +294,17 @@ pub fn pagar_cuotas_familia(
     familia_id: i32,
     anio: i32,
     fecha_pago: &str,
-    metodo_pago: &str
+    metodo_pago: &str,
 ) -> Result<i32, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     // Primero obtenemos el nombre de la familia
     let familia_nombre: String = conn.query_row(
         "SELECT nombre_familia FROM familias WHERE id = ?1",
         [familia_id],
-        |row| row.get(0)
+        |row| row.get(0),
     )?;
 
     let observacion = format!("Pagado con la familia {}", familia_nombre);

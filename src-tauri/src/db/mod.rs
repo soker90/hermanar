@@ -1,12 +1,12 @@
+use anyhow::Context;
 use rusqlite::{Connection, Result};
 use serde::{Deserialize, Serialize};
-use std::sync::{Arc, Mutex};
-use anyhow::Context;
 use std::sync::OnceLock;
+use std::sync::{Arc, Mutex};
 
-pub mod hermanos;
-pub mod familias;
 pub mod cuotas;
+pub mod familias;
+pub mod hermanos;
 
 // Estado global para rastrear recuperación de BD
 static DB_RECOVERY_STATUS: OnceLock<DbRecoveryStatus> = OnceLock::new();
@@ -22,20 +22,19 @@ pub fn get_db_recovery_status() -> Option<DbRecoveryStatus> {
 }
 
 // Re-export specific functions
-pub use hermanos::{
-    get_all_hermanos, get_hermanos_activos, get_hermano_by_id, search_hermanos,
-    create_hermano, update_hermano, delete_hermano, set_hermano_inactive, get_hermanos_by_familia,
-    update_hermano_familia,
+pub use cuotas::{
+    create_cuota, delete_cuota, generar_cuotas_anio, get_all_cuotas, get_cuotas_by_hermano,
+    get_cuotas_by_year, get_cuotas_pendientes, get_estadisticas_cuotas, marcar_cuota_pagada,
+    pagar_cuotas_familia, update_cuota,
 };
 pub use familias::{
-    get_all_familias, get_familia_by_id, search_familias, create_familia,
-    update_familia, delete_familia, get_familia_stats,
-    get_familia_with_hermanos, get_familia_with_address
+    create_familia, delete_familia, get_all_familias, get_familia_by_id, get_familia_stats,
+    get_familia_with_address, get_familia_with_hermanos, search_familias, update_familia,
 };
-pub use cuotas::{
-    get_all_cuotas, get_cuotas_by_hermano, get_cuotas_by_year, get_cuotas_pendientes,
-    create_cuota, update_cuota, delete_cuota, marcar_cuota_pagada, pagar_cuotas_familia,
-    generar_cuotas_anio, get_estadisticas_cuotas
+pub use hermanos::{
+    create_hermano, delete_hermano, get_all_hermanos, get_hermano_by_id, get_hermanos_activos,
+    get_hermanos_by_familia, search_hermanos, set_hermano_inactive, update_hermano,
+    update_hermano_familia,
 };
 
 // Tipos compartidos
@@ -75,6 +74,7 @@ pub struct Hermano {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
+#[derive(Default)]
 pub struct Familia {
     pub id: Option<i32>,
     pub nombre_familia: String,
@@ -84,17 +84,6 @@ pub struct Familia {
     pub updated_at: Option<String>,
 }
 
-impl Default for Familia {
-    fn default() -> Self {
-        Self {
-            id: None,
-            nombre_familia: String::new(),
-            hermano_direccion_id: None,
-            created_at: None,
-            updated_at: None,
-        }
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Cuota {
@@ -129,15 +118,14 @@ pub fn init_database() -> Result<DbConnection, anyhow::Error> {
     let app_data_dir = std::env::var("APPDATA")
         .or_else(|_| std::env::var("HOME").map(|home| format!("{}/.local/share", home)))
         .unwrap_or_else(|_| ".".to_string());
-    
+
     let db_dir = format!("{}/hermanar", app_data_dir);
-    std::fs::create_dir_all(&db_dir)
-        .context("No se pudo crear el directorio de datos")?;
-    
+    std::fs::create_dir_all(&db_dir).context("No se pudo crear el directorio de datos")?;
+
     let db_path = format!("{}/hermanar.db", db_dir);
     let backup_path = format!("{}/hermanar.db.backup", db_dir);
     let corrupt_path = format!("{}/hermanar-corrupta.db", db_dir);
-    
+
     println!("Ruta de la base de datos: {}", db_path);
 
     // Variable para rastrear si hubo recuperación
@@ -146,7 +134,7 @@ pub fn init_database() -> Result<DbConnection, anyhow::Error> {
 
     // Intentar abrir la base de datos
     let conn_result = Connection::open(&db_path);
-    
+
     let conn = match conn_result {
         Ok(c) => {
             // Intentar verificar la integridad de la base de datos
@@ -155,26 +143,26 @@ pub fn init_database() -> Result<DbConnection, anyhow::Error> {
                 Err(e) => {
                     println!("Error de integridad en la base de datos: {}", e);
                     println!("Intentando recuperar desde backup...");
-                    
+
                     recovery_occurred = true;
-                    
+
                     // Cerrar la conexión corrupta
                     drop(c);
-                    
+
                     // Renombrar la base de datos corrupta
                     if std::path::Path::new(&db_path).exists() {
                         std::fs::rename(&db_path, &corrupt_path)
                             .context("No se pudo renombrar la base de datos corrupta")?;
                         println!("Base de datos corrupta renombrada a: {}", corrupt_path);
                     }
-                    
+
                     // Restaurar desde backup si existe
                     if std::path::Path::new(&backup_path).exists() {
                         had_backup = true;
                         std::fs::rename(&backup_path, &db_path)
                             .context("No se pudo restaurar el backup")?;
                         println!("Backup restaurado correctamente");
-                        
+
                         // Abrir la base de datos restaurada
                         Connection::open(&db_path)
                             .context("No se pudo abrir la base de datos restaurada")?
@@ -189,24 +177,24 @@ pub fn init_database() -> Result<DbConnection, anyhow::Error> {
         }
         Err(e) => {
             println!("Error al abrir la base de datos: {}", e);
-            
+
             recovery_occurred = true;
-            
+
             // Si existe backup, intentar restaurarlo
             if std::path::Path::new(&backup_path).exists() {
                 had_backup = true;
                 println!("Intentando restaurar desde backup...");
-                
+
                 // Renombrar la base de datos corrupta si existe
                 if std::path::Path::new(&db_path).exists() {
                     std::fs::rename(&db_path, &corrupt_path)
                         .context("No se pudo renombrar la base de datos corrupta")?;
                 }
-                
+
                 std::fs::rename(&backup_path, &db_path)
                     .context("No se pudo restaurar el backup")?;
                 println!("Backup restaurado correctamente");
-                
+
                 Connection::open(&db_path)
                     .context("No se pudo abrir la base de datos restaurada")?
             } else {
@@ -214,7 +202,7 @@ pub fn init_database() -> Result<DbConnection, anyhow::Error> {
             }
         }
     };
-    
+
     // Guardar el estado de recuperación
     if recovery_occurred {
         let _ = DB_RECOVERY_STATUS.set(DbRecoveryStatus {
@@ -226,7 +214,7 @@ pub fn init_database() -> Result<DbConnection, anyhow::Error> {
     println!("Conexión establecida, creando tablas...");
 
     create_tables(&conn)?;
-    
+
     println!("Ejecutando migraciones...");
     run_migrations(&conn)?;
 
@@ -348,7 +336,7 @@ fn get_schema_version(conn: &Connection) -> Result<i32, anyhow::Error> {
             |row| row.get::<_, i32>(0),
         )
         .unwrap_or(0);
-    
+
     Ok(version)
 }
 
@@ -367,17 +355,16 @@ fn run_migrations(conn: &Connection) -> Result<(), anyhow::Error> {
     // Migración 1: Añadir campo recibo a cuotas
     if current_version < 1 {
         println!("Aplicando migración 1: Añadir campo recibo");
-        
+
         // Verificar si la columna ya existe
-        let column_exists: bool = conn
-            .query_row(
-                "SELECT COUNT(*) FROM pragma_table_info('cuotas') WHERE name='recibo'",
-                [],
-                |row| {
-                    let count: i32 = row.get(0)?;
-                    Ok(count > 0)
-                },
-            )?;
+        let column_exists: bool = conn.query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('cuotas') WHERE name='recibo'",
+            [],
+            |row| {
+                let count: i32 = row.get(0)?;
+                Ok(count > 0)
+            },
+        )?;
 
         if !column_exists {
             conn.execute(
@@ -396,7 +383,7 @@ fn run_migrations(conn: &Connection) -> Result<(), anyhow::Error> {
     // Migración 2: Crear tabla configuracion_recibos
     if current_version < 2 {
         println!("Aplicando migración 2: Crear tabla configuracion_recibos");
-        
+
         // Verificar si la tabla ya existe
         let table_exists: bool = conn
             .query_row(
@@ -433,23 +420,19 @@ fn run_migrations(conn: &Connection) -> Result<(), anyhow::Error> {
     // Migración 3: Añadir campo fecha_baja a hermanos
     if current_version < 3 {
         println!("Aplicando migración 3: Añadir campo fecha_baja");
-        
+
         // Verificar si la columna ya existe
-        let column_exists: bool = conn
-            .query_row(
-                "SELECT COUNT(*) FROM pragma_table_info('hermanos') WHERE name='fecha_baja'",
-                [],
-                |row| {
-                    let count: i32 = row.get(0)?;
-                    Ok(count > 0)
-                },
-            )?;
+        let column_exists: bool = conn.query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('hermanos') WHERE name='fecha_baja'",
+            [],
+            |row| {
+                let count: i32 = row.get(0)?;
+                Ok(count > 0)
+            },
+        )?;
 
         if !column_exists {
-            conn.execute(
-                "ALTER TABLE hermanos ADD COLUMN fecha_baja TEXT",
-                [],
-            )?;
+            conn.execute("ALTER TABLE hermanos ADD COLUMN fecha_baja TEXT", [])?;
             println!("Campo 'fecha_baja' añadido a la tabla hermanos");
         } else {
             println!("Campo 'fecha_baja' ya existe, saltando migración");

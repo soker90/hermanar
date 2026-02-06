@@ -1,9 +1,8 @@
+use fake::{faker::name::en::*, Fake};
 use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
-use fake::{Fake, faker::name::en::*};
 
 pub type DbConnection = Arc<Mutex<Connection>>;
-
 
 /// Crea una base de datos en memoria para tests
 pub fn create_test_db() -> DbConnection {
@@ -88,14 +87,15 @@ fn init_test_db(conn: &Connection) -> rusqlite::Result<()> {
 }
 
 /// Inserta una familia. Si nombre es None, genera uno aleatorio.
-pub fn insert_test_familia(
-    db: &DbConnection,
-    nombre: Option<&str>,
-) -> rusqlite::Result<i32> {
-    let conn = db.lock().map_err(|_| rusqlite::Error::ExecuteReturnedResults)?;
+pub fn insert_test_familia(db: &DbConnection, nombre: Option<&str>) -> rusqlite::Result<i32> {
+    let conn = db
+        .lock()
+        .map_err(|_| rusqlite::Error::ExecuteReturnedResults)?;
     let now = chrono::Local::now().to_rfc3339();
-    let familia_name = nombre.map(|s| s.to_string()).unwrap_or_else(|| LastName().fake());
-    
+    let familia_name = nombre
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| LastName().fake());
+
     conn.execute(
         "INSERT INTO familias (nombre_familia, created_at, updated_at) VALUES (?1, ?2, ?3)",
         rusqlite::params![familia_name, now, now],
@@ -103,7 +103,6 @@ pub fn insert_test_familia(
 
     Ok(conn.last_insert_rowid() as i32)
 }
-
 
 /// Inserta un hermano. Si nombre o primer_apellido son None, genera valores aleatorios.
 pub fn insert_test_hermano(
@@ -113,12 +112,18 @@ pub fn insert_test_hermano(
     primer_apellido: Option<&str>,
     familia_id: Option<i32>,
 ) -> rusqlite::Result<i32> {
-    let conn = db.lock().map_err(|_| rusqlite::Error::ExecuteReturnedResults)?;
+    let conn = db
+        .lock()
+        .map_err(|_| rusqlite::Error::ExecuteReturnedResults)?;
     let now = chrono::Local::now().to_rfc3339();
     let fecha_alta = "2024-01-01".to_string(); // Valor por defecto para tests
-    let nombre_h = nombre.map(|s| s.to_string()).unwrap_or_else(|| FirstName().fake());
-    let apellido_h = primer_apellido.map(|s| s.to_string()).unwrap_or_else(|| LastName().fake());
-    
+    let nombre_h = nombre
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| FirstName().fake());
+    let apellido_h = primer_apellido
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| LastName().fake());
+
     conn.execute(
         "INSERT INTO hermanos (numero_hermano, nombre, primer_apellido, familia_id, fecha_alta, activo, created_at, updated_at)
          VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6, ?7)",
@@ -137,7 +142,6 @@ pub fn insert_fake_hermano(
     insert_test_hermano(db, numero, None, None, familia_id)
 }
 
-
 /// Inserta una cuota de test
 pub fn insert_test_cuota(
     db: &DbConnection,
@@ -146,13 +150,22 @@ pub fn insert_test_cuota(
     importe: f64,
     pagado: bool,
 ) -> rusqlite::Result<i32> {
-    let conn = db.lock().map_err(|_| rusqlite::Error::ExecuteReturnedResults)?;
+    let conn = db
+        .lock()
+        .map_err(|_| rusqlite::Error::ExecuteReturnedResults)?;
     let now = chrono::Local::now().to_rfc3339();
-    
+
     conn.execute(
         "INSERT INTO cuotas (hermano_id, anio, importe, pagado, recibo, created_at, updated_at)
          VALUES (?1, ?2, ?3, ?4, 0, ?5, ?6)",
-        rusqlite::params![hermano_id, anio, importe, if pagado { 1 } else { 0 }, now, now],
+        rusqlite::params![
+            hermano_id,
+            anio,
+            importe,
+            if pagado { 1 } else { 0 },
+            now,
+            now
+        ],
     )?;
 
     Ok(conn.last_insert_rowid() as i32)

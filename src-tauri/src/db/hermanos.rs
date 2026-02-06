@@ -1,5 +1,5 @@
+use crate::db::{DbConnection, Hermano};
 use rusqlite::{params, Result, Row};
-use crate::db::{Hermano, DbConnection};
 
 impl Hermano {
     pub fn from_row(row: &Row) -> Result<Self, rusqlite::Error> {
@@ -39,7 +39,9 @@ impl Hermano {
 }
 
 pub fn get_all_hermanos(db: &DbConnection) -> Result<Vec<Hermano>, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
         "SELECT id, numero_hermano, nombre, primer_apellido, segundo_apellido, dni, 
                 fecha_nacimiento, localidad_nacimiento, provincia_nacimiento, fecha_alta, 
@@ -51,16 +53,17 @@ pub fn get_all_hermanos(db: &DbConnection) -> Result<Vec<Hermano>, anyhow::Error
          ORDER BY numero_hermano"
     )?;
 
-    let hermanos = stmt.query_map([], |row| {
-        Hermano::from_row(row)
-    })?
-    .collect::<Result<Vec<_>, _>>()?;
+    let hermanos = stmt
+        .query_map([], Hermano::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(hermanos)
 }
 
 pub fn get_hermanos_activos(db: &DbConnection) -> Result<Vec<Hermano>, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
         "SELECT id, numero_hermano, nombre, primer_apellido, segundo_apellido, dni, 
                 fecha_nacimiento, localidad_nacimiento, provincia_nacimiento, fecha_alta, 
@@ -73,16 +76,17 @@ pub fn get_hermanos_activos(db: &DbConnection) -> Result<Vec<Hermano>, anyhow::E
          ORDER BY numero_hermano"
     )?;
 
-    let hermanos = stmt.query_map([], |row| {
-        Hermano::from_row(row)
-    })?
-    .collect::<Result<Vec<_>, _>>()?;
+    let hermanos = stmt
+        .query_map([], Hermano::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(hermanos)
 }
 
 pub fn get_hermano_by_id(db: &DbConnection, id: i32) -> Result<Option<Hermano>, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
         "SELECT id, numero_hermano, nombre, primer_apellido, segundo_apellido, dni, 
                 fecha_nacimiento, localidad_nacimiento, provincia_nacimiento, fecha_alta, 
@@ -94,7 +98,7 @@ pub fn get_hermano_by_id(db: &DbConnection, id: i32) -> Result<Option<Hermano>, 
          WHERE id = ?1"
     )?;
 
-    match stmt.query_row([id], |row| Hermano::from_row(row)) {
+    match stmt.query_row([id], Hermano::from_row) {
         Ok(hermano) => Ok(Some(hermano)),
         Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
         Err(e) => Err(e.into()),
@@ -102,7 +106,9 @@ pub fn get_hermano_by_id(db: &DbConnection, id: i32) -> Result<Option<Hermano>, 
 }
 
 pub fn search_hermanos(db: &DbConnection, query: &str) -> Result<Vec<Hermano>, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let search_pattern = format!("%{}%", query);
 
     let mut stmt = conn.prepare(
@@ -117,16 +123,20 @@ pub fn search_hermanos(db: &DbConnection, query: &str) -> Result<Vec<Hermano>, a
          ORDER BY numero_hermano"
     )?;
 
-    let hermanos = stmt.query_map([&search_pattern], |row| {
-        Hermano::from_row(row)
-    })?
-    .collect::<Result<Vec<_>, _>>()?;
+    let hermanos = stmt
+        .query_map([&search_pattern], Hermano::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(hermanos)
 }
 
-pub fn get_hermanos_by_familia(db: &DbConnection, familia_id: i32) -> Result<Vec<Hermano>, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+pub fn get_hermanos_by_familia(
+    db: &DbConnection,
+    familia_id: i32,
+) -> Result<Vec<Hermano>, anyhow::Error> {
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
     let mut stmt = conn.prepare(
         "SELECT id, numero_hermano, nombre, primer_apellido, segundo_apellido, dni, 
                 fecha_nacimiento, localidad_nacimiento, provincia_nacimiento, fecha_alta, 
@@ -139,22 +149,22 @@ pub fn get_hermanos_by_familia(db: &DbConnection, familia_id: i32) -> Result<Vec
          ORDER BY numero_hermano"
     )?;
 
-    let hermanos = stmt.query_map([familia_id], |row| {
-        Hermano::from_row(row)
-    })?
-    .collect::<Result<Vec<_>, _>>()?;
+    let hermanos = stmt
+        .query_map([familia_id], Hermano::from_row)?
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok(hermanos)
 }
 
 pub fn create_hermano(db: &DbConnection, hermano: &Hermano) -> Result<i32, anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     // Generar número de hermano único si está vacío (5 dígitos numéricos)
     let numero_hermano = if hermano.numero_hermano.trim().is_empty() {
-        let count: i32 = conn.query_row("SELECT COUNT(*) FROM hermanos", [], |row| {
-            Ok(row.get(0)?)
-        })?;
+        let count: i32 =
+            conn.query_row("SELECT COUNT(*) FROM hermanos", [], |row| row.get(0))?;
         format!("{:05}", count + 1)
     } else {
         // Validar que sea numérico de 5 dígitos
@@ -162,27 +172,62 @@ pub fn create_hermano(db: &DbConnection, hermano: &Hermano) -> Result<i32, anyho
         if cleaned.len() == 5 && cleaned.chars().all(|c| c.is_ascii_digit()) {
             cleaned.to_string()
         } else {
-            return Err(anyhow::anyhow!("El número de hermano debe tener exactamente 5 dígitos numéricos"));
+            return Err(anyhow::anyhow!(
+                "El número de hermano debe tener exactamente 5 dígitos numéricos"
+            ));
         }
     };
 
-    let segundo_apellido = hermano.segundo_apellido.as_ref().filter(|s| !s.trim().is_empty());
+    let segundo_apellido = hermano
+        .segundo_apellido
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
     let dni = hermano.dni.as_ref().filter(|s| !s.trim().is_empty());
     let telefono = hermano.telefono.as_ref().filter(|s| !s.trim().is_empty());
     let email = hermano.email.as_ref().filter(|s| !s.trim().is_empty());
     let direccion = hermano.direccion.as_ref().filter(|s| !s.trim().is_empty());
-    let fecha_nacimiento = hermano.fecha_nacimiento.as_ref().filter(|s| !s.trim().is_empty());
-    let localidad_nacimiento = hermano.localidad_nacimiento.as_ref().filter(|s| !s.trim().is_empty());
-    let provincia_nacimiento = hermano.provincia_nacimiento.as_ref().filter(|s| !s.trim().is_empty());
+    let fecha_nacimiento = hermano
+        .fecha_nacimiento
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let localidad_nacimiento = hermano
+        .localidad_nacimiento
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let provincia_nacimiento = hermano
+        .provincia_nacimiento
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
     let localidad = hermano.localidad.as_ref().filter(|s| !s.trim().is_empty());
     let provincia = hermano.provincia.as_ref().filter(|s| !s.trim().is_empty());
-    let codigo_postal = hermano.codigo_postal.as_ref().filter(|s| !s.trim().is_empty());
-    let parroquia_bautismo = hermano.parroquia_bautismo.as_ref().filter(|s| !s.trim().is_empty());
-    let localidad_bautismo = hermano.localidad_bautismo.as_ref().filter(|s| !s.trim().is_empty());
-    let provincia_bautismo = hermano.provincia_bautismo.as_ref().filter(|s| !s.trim().is_empty());
-    let nombre_representante_legal = hermano.nombre_representante_legal.as_ref().filter(|s| !s.trim().is_empty());
-    let dni_representante_legal = hermano.dni_representante_legal.as_ref().filter(|s| !s.trim().is_empty());
-    let observaciones = hermano.observaciones.as_ref().filter(|s| !s.trim().is_empty());
+    let codigo_postal = hermano
+        .codigo_postal
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let parroquia_bautismo = hermano
+        .parroquia_bautismo
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let localidad_bautismo = hermano
+        .localidad_bautismo
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let provincia_bautismo = hermano
+        .provincia_bautismo
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let nombre_representante_legal = hermano
+        .nombre_representante_legal
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let dni_representante_legal = hermano
+        .dni_representante_legal
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let observaciones = hermano
+        .observaciones
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
 
     let _id = conn.execute(
         "INSERT INTO hermanos
@@ -227,25 +272,60 @@ pub fn create_hermano(db: &DbConnection, hermano: &Hermano) -> Result<i32, anyho
 }
 
 pub fn update_hermano(db: &DbConnection, id: i32, hermano: &Hermano) -> Result<(), anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
-    let segundo_apellido = hermano.segundo_apellido.as_ref().filter(|s| !s.trim().is_empty());
+    let segundo_apellido = hermano
+        .segundo_apellido
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
     let dni = hermano.dni.as_ref().filter(|s| !s.trim().is_empty());
     let telefono = hermano.telefono.as_ref().filter(|s| !s.trim().is_empty());
     let email = hermano.email.as_ref().filter(|s| !s.trim().is_empty());
     let direccion = hermano.direccion.as_ref().filter(|s| !s.trim().is_empty());
-    let fecha_nacimiento = hermano.fecha_nacimiento.as_ref().filter(|s| !s.trim().is_empty());
-    let localidad_nacimiento = hermano.localidad_nacimiento.as_ref().filter(|s| !s.trim().is_empty());
-    let provincia_nacimiento = hermano.provincia_nacimiento.as_ref().filter(|s| !s.trim().is_empty());
+    let fecha_nacimiento = hermano
+        .fecha_nacimiento
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let localidad_nacimiento = hermano
+        .localidad_nacimiento
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let provincia_nacimiento = hermano
+        .provincia_nacimiento
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
     let localidad = hermano.localidad.as_ref().filter(|s| !s.trim().is_empty());
     let provincia = hermano.provincia.as_ref().filter(|s| !s.trim().is_empty());
-    let codigo_postal = hermano.codigo_postal.as_ref().filter(|s| !s.trim().is_empty());
-    let parroquia_bautismo = hermano.parroquia_bautismo.as_ref().filter(|s| !s.trim().is_empty());
-    let localidad_bautismo = hermano.localidad_bautismo.as_ref().filter(|s| !s.trim().is_empty());
-    let provincia_bautismo = hermano.provincia_bautismo.as_ref().filter(|s| !s.trim().is_empty());
-    let nombre_representante_legal = hermano.nombre_representante_legal.as_ref().filter(|s| !s.trim().is_empty());
-    let dni_representante_legal = hermano.dni_representante_legal.as_ref().filter(|s| !s.trim().is_empty());
-    let observaciones = hermano.observaciones.as_ref().filter(|s| !s.trim().is_empty());
+    let codigo_postal = hermano
+        .codigo_postal
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let parroquia_bautismo = hermano
+        .parroquia_bautismo
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let localidad_bautismo = hermano
+        .localidad_bautismo
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let provincia_bautismo = hermano
+        .provincia_bautismo
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let nombre_representante_legal = hermano
+        .nombre_representante_legal
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let dni_representante_legal = hermano
+        .dni_representante_legal
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
+    let observaciones = hermano
+        .observaciones
+        .as_ref()
+        .filter(|s| !s.trim().is_empty());
 
     conn.execute(
         "UPDATE hermanos
@@ -294,7 +374,9 @@ pub fn update_hermano(db: &DbConnection, id: i32, hermano: &Hermano) -> Result<(
 }
 
 pub fn delete_hermano(db: &DbConnection, id: i32) -> Result<(), anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     conn.execute("DELETE FROM hermanos WHERE id = ?1", [id])?;
 
@@ -302,22 +384,30 @@ pub fn delete_hermano(db: &DbConnection, id: i32) -> Result<(), anyhow::Error> {
 }
 
 pub fn set_hermano_inactive(db: &DbConnection, id: i32) -> Result<(), anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     conn.execute(
         "UPDATE hermanos SET activo = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?1",
-        [id]
+        [id],
     )?;
 
     Ok(())
 }
 
-pub fn update_hermano_familia(db: &DbConnection, hermano_id: i32, familia_id: Option<i32>) -> Result<(), anyhow::Error> {
-    let conn = db.lock().map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
+pub fn update_hermano_familia(
+    db: &DbConnection,
+    hermano_id: i32,
+    familia_id: Option<i32>,
+) -> Result<(), anyhow::Error> {
+    let conn = db
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     conn.execute(
         "UPDATE hermanos SET familia_id = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2",
-        params![familia_id, hermano_id]
+        params![familia_id, hermano_id],
     )?;
 
     Ok(())

@@ -19,48 +19,50 @@ use crate::tests::fixtures::*;
 #[test]
 fn test_cmd_performance_muchos_hermanos() {
     let db = create_test_db();
-    
+
     // Crear 100 hermanos
     for i in 0..100 {
         let numero = format!("{:05}", i + 1);
         let nombre = format!("Hermano{}", i);
         insert_test_hermano(&db, &numero, Some(&nombre), Some("Apellido"), None).unwrap();
     }
-    
+
     let conn = db.lock().unwrap();
-    let count: i32 = conn.query_row(
-        "SELECT COUNT(*) FROM hermanos",
-        [],
-        |row| row.get(0),
-    ).unwrap();
-    
+    let count: i32 = conn
+        .query_row("SELECT COUNT(*) FROM hermanos", [], |row| row.get(0))
+        .unwrap();
+
     assert_eq!(count, 100);
 }
 
 #[test]
 fn test_cmd_performance_muchas_cuotas() {
     let db = create_test_db();
-    
+
     let hermano_id = insert_test_hermano(&db, "00001", Some("Juan"), Some("García"), None).unwrap();
-    
+
     // Crear cuotas para 50 años (1975-2025)
     for anio in 1975..2025 {
-        insert_test_cuota(&db, hermano_id, anio as i32, 50.0, false).unwrap();
+        insert_test_cuota(&db, hermano_id, anio, 50.0, false).unwrap();
     }
-    
+
     let conn = db.lock().unwrap();
-    let count: i32 = conn.query_row(
-        "SELECT COUNT(*) FROM cuotas WHERE hermano_id = ?1",
-        rusqlite::params![hermano_id],
-        |row| row.get(0),
-    ).unwrap();
-    
-    let total: f64 = conn.query_row(
-        "SELECT SUM(importe) FROM cuotas WHERE hermano_id = ?1",
-        rusqlite::params![hermano_id],
-        |row| row.get(0),
-    ).unwrap();
-    
+    let count: i32 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM cuotas WHERE hermano_id = ?1",
+            rusqlite::params![hermano_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+
+    let total: f64 = conn
+        .query_row(
+            "SELECT SUM(importe) FROM cuotas WHERE hermano_id = ?1",
+            rusqlite::params![hermano_id],
+            |row| row.get(0),
+        )
+        .unwrap();
+
     assert_eq!(count, 50);
     assert_eq!(total, 2500.0);
 }

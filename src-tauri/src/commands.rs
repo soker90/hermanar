@@ -1,16 +1,15 @@
 use crate::db::{
-    Hermano, Familia, Cuota, EstadisticasCuotas, DbConnection, DbRecoveryStatus,
-    get_all_hermanos, get_hermanos_activos, get_hermano_by_id, search_hermanos,
-    create_hermano, update_hermano, delete_hermano, set_hermano_inactive, get_hermanos_by_familia,
-    update_hermano_familia,
-    get_all_familias, get_familia_by_id, search_familias, create_familia,
-    update_familia, delete_familia, get_familia_stats, get_familia_with_hermanos, get_familia_with_address,
-    get_all_cuotas, get_cuotas_by_hermano, get_cuotas_by_year, get_cuotas_pendientes,
-    create_cuota, update_cuota, delete_cuota, marcar_cuota_pagada, pagar_cuotas_familia,
-    generar_cuotas_anio, get_estadisticas_cuotas, get_db_recovery_status
+    create_cuota, create_familia, create_hermano, delete_cuota, delete_familia, delete_hermano,
+    generar_cuotas_anio, get_all_cuotas, get_all_familias, get_all_hermanos, get_cuotas_by_hermano,
+    get_cuotas_by_year, get_cuotas_pendientes, get_db_recovery_status, get_estadisticas_cuotas,
+    get_familia_by_id, get_familia_stats, get_familia_with_address, get_familia_with_hermanos,
+    get_hermano_by_id, get_hermanos_activos, get_hermanos_by_familia, marcar_cuota_pagada,
+    pagar_cuotas_familia, search_familias, search_hermanos, set_hermano_inactive, update_cuota,
+    update_familia, update_hermano, update_hermano_familia, Cuota, DbConnection, DbRecoveryStatus,
+    EstadisticasCuotas, Familia, Hermano,
 };
-use serde_json::Value;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tauri::State;
 
 // Comando para obtener la versión de la aplicación
@@ -34,20 +33,17 @@ pub struct HermanoConFamiliaData {
 // Comandos para Hermanos
 #[tauri::command]
 pub fn get_all_hermanos_cmd(db: State<DbConnection>) -> Result<Vec<Hermano>, String> {
-    get_all_hermanos(&db)
-        .map_err(|e| format!("Error al obtener hermanos: {}", e))
+    get_all_hermanos(&db).map_err(|e| format!("Error al obtener hermanos: {}", e))
 }
 
 #[tauri::command]
 pub fn get_hermanos_activos_cmd(db: State<DbConnection>) -> Result<Vec<Hermano>, String> {
-    get_hermanos_activos(&db)
-        .map_err(|e| format!("Error al obtener hermanos activos: {}", e))
+    get_hermanos_activos(&db).map_err(|e| format!("Error al obtener hermanos activos: {}", e))
 }
 
 #[tauri::command]
 pub fn get_hermano_by_id_cmd(db: State<DbConnection>, id: i32) -> Result<Option<Hermano>, String> {
-    get_hermano_by_id(&db, id)
-        .map_err(|e| format!("Error al obtener hermano: {}", e))
+    get_hermano_by_id(&db, id).map_err(|e| format!("Error al obtener hermano: {}", e))
 }
 
 #[tauri::command]
@@ -61,42 +57,48 @@ pub fn get_hermano_cmd(db: State<DbConnection>, id: i32) -> Result<Hermano, Stri
 
 #[tauri::command]
 pub fn search_hermanos_cmd(db: State<DbConnection>, query: String) -> Result<Vec<Hermano>, String> {
-    search_hermanos(&db, &query)
-        .map_err(|e| format!("Error al buscar hermanos: {}", e))
+    search_hermanos(&db, &query).map_err(|e| format!("Error al buscar hermanos: {}", e))
 }
 
 #[tauri::command]
 pub fn create_hermano_cmd(db: State<DbConnection>, hermano: Hermano) -> Result<i32, String> {
-    create_hermano(&db, &hermano)
-        .map_err(|e| format!("Error al crear hermano: {}", e))
+    create_hermano(&db, &hermano).map_err(|e| format!("Error al crear hermano: {}", e))
 }
 
 #[tauri::command]
-pub fn update_hermano_cmd(db: State<DbConnection>, id: i32, hermano: Hermano) -> Result<(), String> {
-    update_hermano(&db, id, &hermano)
-        .map_err(|e| format!("Error al actualizar hermano: {}", e))
+pub fn update_hermano_cmd(
+    db: State<DbConnection>,
+    id: i32,
+    hermano: Hermano,
+) -> Result<(), String> {
+    update_hermano(&db, id, &hermano).map_err(|e| format!("Error al actualizar hermano: {}", e))
 }
 
 #[tauri::command]
-pub fn update_hermano_familia_cmd(db: State<DbConnection>, hermano_id: i32, familia_id: Option<i32>) -> Result<(), String> {
+pub fn update_hermano_familia_cmd(
+    db: State<DbConnection>,
+    hermano_id: i32,
+    familia_id: Option<i32>,
+) -> Result<(), String> {
     update_hermano_familia(&db, hermano_id, familia_id)
         .map_err(|e| format!("Error al actualizar familia del hermano: {}", e))
 }
 
 #[tauri::command]
 pub fn delete_hermano_cmd(db: State<DbConnection>, id: i32) -> Result<(), String> {
-    delete_hermano(&db, id)
-        .map_err(|e| format!("Error al eliminar hermano: {}", e))
+    delete_hermano(&db, id).map_err(|e| format!("Error al eliminar hermano: {}", e))
 }
 
 #[tauri::command]
 pub fn set_hermano_inactive_cmd(db: State<DbConnection>, id: i32) -> Result<(), String> {
-    set_hermano_inactive(&db, id)
-        .map_err(|e| format!("Error al dar de baja hermano: {}", e))
+    set_hermano_inactive(&db, id).map_err(|e| format!("Error al dar de baja hermano: {}", e))
 }
 
 #[tauri::command]
-pub fn get_hermanos_by_familia_cmd(db: State<DbConnection>, familia_id: i32) -> Result<Vec<Hermano>, String> {
+pub fn get_hermanos_by_familia_cmd(
+    db: State<DbConnection>,
+    familia_id: i32,
+) -> Result<Vec<Hermano>, String> {
     get_hermanos_by_familia(&db, familia_id)
         .map_err(|e| format!("Error al obtener hermanos de la familia: {}", e))
 }
@@ -104,42 +106,43 @@ pub fn get_hermanos_by_familia_cmd(db: State<DbConnection>, familia_id: i32) -> 
 // Comandos para Familias
 #[tauri::command]
 pub fn get_all_familias_cmd(db: State<DbConnection>) -> Result<Vec<Familia>, String> {
-    get_all_familias(&db)
-        .map_err(|e| format!("Error al obtener familias: {}", e))
+    get_all_familias(&db).map_err(|e| format!("Error al obtener familias: {}", e))
 }
 
 #[tauri::command]
 pub fn get_familia_by_id_cmd(db: State<DbConnection>, id: i32) -> Result<Option<Familia>, String> {
-    get_familia_by_id(&db, id)
-        .map_err(|e| format!("Error al obtener familia: {}", e))
+    get_familia_by_id(&db, id).map_err(|e| format!("Error al obtener familia: {}", e))
 }
 
 #[tauri::command]
 pub fn search_familias_cmd(db: State<DbConnection>, query: String) -> Result<Vec<Familia>, String> {
-    search_familias(&db, &query)
-        .map_err(|e| format!("Error al buscar familias: {}", e))
+    search_familias(&db, &query).map_err(|e| format!("Error al buscar familias: {}", e))
 }
 
 #[tauri::command]
 pub fn create_familia_cmd(db: State<DbConnection>, familia: Familia) -> Result<i32, String> {
-    create_familia(&db, &familia)
-        .map_err(|e| format!("Error al crear familia: {}", e))
+    create_familia(&db, &familia).map_err(|e| format!("Error al crear familia: {}", e))
 }
 
 #[tauri::command]
-pub fn update_familia_cmd(db: State<DbConnection>, id: i32, familia: Familia) -> Result<(), String> {
-    update_familia(&db, id, &familia)
-        .map_err(|e| format!("Error al actualizar familia: {}", e))
+pub fn update_familia_cmd(
+    db: State<DbConnection>,
+    id: i32,
+    familia: Familia,
+) -> Result<(), String> {
+    update_familia(&db, id, &familia).map_err(|e| format!("Error al actualizar familia: {}", e))
 }
 
 #[tauri::command]
 pub fn delete_familia_cmd(db: State<DbConnection>, id: i32) -> Result<(), String> {
-    delete_familia(&db, id)
-        .map_err(|e| format!("Error al eliminar familia: {}", e))
+    delete_familia(&db, id).map_err(|e| format!("Error al eliminar familia: {}", e))
 }
 
 #[tauri::command]
-pub fn get_familia_stats_cmd(db: State<DbConnection>, familia_id: i32) -> Result<(i32, i32), String> {
+pub fn get_familia_stats_cmd(
+    db: State<DbConnection>,
+    familia_id: i32,
+) -> Result<(i32, i32), String> {
     get_familia_stats(&db, familia_id)
         .map_err(|e| format!("Error al obtener estadísticas de familia: {}", e))
 }
@@ -147,42 +150,45 @@ pub fn get_familia_stats_cmd(db: State<DbConnection>, familia_id: i32) -> Result
 // Comandos para Cuotas
 #[tauri::command]
 pub fn get_all_cuotas_cmd(db: State<DbConnection>) -> Result<Vec<Cuota>, String> {
-    get_all_cuotas(&db)
-        .map_err(|e| format!("Error al obtener cuotas: {}", e))
+    get_all_cuotas(&db).map_err(|e| format!("Error al obtener cuotas: {}", e))
 }
 
 #[tauri::command]
-pub fn get_cuotas_by_hermano_cmd(db: State<DbConnection>, hermano_id: i32) -> Result<Vec<Cuota>, String> {
+pub fn get_cuotas_by_hermano_cmd(
+    db: State<DbConnection>,
+    hermano_id: i32,
+) -> Result<Vec<Cuota>, String> {
     get_cuotas_by_hermano(&db, hermano_id)
         .map_err(|e| format!("Error al obtener cuotas del hermano: {}", e))
 }
 
 #[tauri::command]
 pub fn get_cuotas_by_year_cmd(db: State<DbConnection>, anio: i32) -> Result<Vec<Cuota>, String> {
-    get_cuotas_by_year(&db, anio)
-        .map_err(|e| format!("Error al obtener cuotas del año: {}", e))
+    get_cuotas_by_year(&db, anio).map_err(|e| format!("Error al obtener cuotas del año: {}", e))
 }
 
 #[tauri::command]
 pub fn get_cuotas_pendientes_cmd(db: State<DbConnection>) -> Result<Vec<Cuota>, String> {
-    get_cuotas_pendientes(&db)
-        .map_err(|e| format!("Error al obtener cuotas pendientes: {}", e))
+    get_cuotas_pendientes(&db).map_err(|e| format!("Error al obtener cuotas pendientes: {}", e))
 }
 
 #[tauri::command]
 pub fn create_cuota_cmd(db: State<DbConnection>, cuota: Cuota) -> Result<i32, String> {
-    create_cuota(&db, &cuota)
-        .map_err(|e| format!("Error al crear cuota: {}", e))
+    create_cuota(&db, &cuota).map_err(|e| format!("Error al crear cuota: {}", e))
 }
 
 #[tauri::command]
 pub fn update_cuota_cmd(db: State<DbConnection>, id: i32, cuota: Cuota) -> Result<(), String> {
-    update_cuota(&db, id, &cuota)
-        .map_err(|e| format!("Error al actualizar cuota: {}", e))
+    update_cuota(&db, id, &cuota).map_err(|e| format!("Error al actualizar cuota: {}", e))
 }
 
 #[tauri::command]
-pub fn marcar_cuota_pagada_cmd(db: State<DbConnection>, id: i32, fecha_pago: String, metodo_pago: String) -> Result<(), String> {
+pub fn marcar_cuota_pagada_cmd(
+    db: State<DbConnection>,
+    id: i32,
+    fecha_pago: String,
+    metodo_pago: String,
+) -> Result<(), String> {
     marcar_cuota_pagada(&db, id, &fecha_pago, &metodo_pago)
         .map_err(|e| format!("Error al marcar cuota como pagada: {}", e))
 }
@@ -193,7 +199,7 @@ pub fn pagar_cuotas_familia_cmd(
     familia_id: i32,
     anio: i32,
     fecha_pago: String,
-    metodo_pago: String
+    metodo_pago: String,
 ) -> Result<i32, String> {
     pagar_cuotas_familia(&db, familia_id, anio, &fecha_pago, &metodo_pago)
         .map_err(|e| format!("Error al pagar cuotas de familia: {}", e))
@@ -201,36 +207,49 @@ pub fn pagar_cuotas_familia_cmd(
 
 #[tauri::command]
 pub fn delete_cuota_cmd(db: State<DbConnection>, id: i32) -> Result<(), String> {
-    delete_cuota(&db, id)
-        .map_err(|e| format!("Error al eliminar cuota: {}", e))
+    delete_cuota(&db, id).map_err(|e| format!("Error al eliminar cuota: {}", e))
 }
 
 #[tauri::command]
-pub fn generar_cuotas_anio_cmd(db: State<DbConnection>, anio: i32, importe: f64) -> Result<i32, String> {
-    generar_cuotas_anio(&db, anio, importe)
-        .map_err(|e| format!("Error al generar cuotas: {}", e))
+pub fn generar_cuotas_anio_cmd(
+    db: State<DbConnection>,
+    anio: i32,
+    importe: f64,
+) -> Result<i32, String> {
+    generar_cuotas_anio(&db, anio, importe).map_err(|e| format!("Error al generar cuotas: {}", e))
 }
 
 #[tauri::command]
-pub fn get_estadisticas_cuotas_cmd(db: State<DbConnection>, anio: Option<i32>) -> Result<EstadisticasCuotas, String> {
-    get_estadisticas_cuotas(&db, anio)
-        .map_err(|e| format!("Error al obtener estadísticas: {}", e))
+pub fn get_estadisticas_cuotas_cmd(
+    db: State<DbConnection>,
+    anio: Option<i32>,
+) -> Result<EstadisticasCuotas, String> {
+    get_estadisticas_cuotas(&db, anio).map_err(|e| format!("Error al obtener estadísticas: {}", e))
 }
 
 #[tauri::command]
-pub fn get_familia_with_hermanos_cmd(db: State<DbConnection>, id: i32) -> Result<Option<Familia>, String> {
+pub fn get_familia_with_hermanos_cmd(
+    db: State<DbConnection>,
+    id: i32,
+) -> Result<Option<Familia>, String> {
     get_familia_with_hermanos(&db, id)
         .map_err(|e| format!("Error al obtener familia con hermanos: {}", e))
 }
 
 #[tauri::command]
-pub fn get_familia_with_address_cmd(db: State<DbConnection>, id: i32) -> Result<Option<Value>, String> {
+pub fn get_familia_with_address_cmd(
+    db: State<DbConnection>,
+    id: i32,
+) -> Result<Option<Value>, String> {
     get_familia_with_address(&db, id)
         .map_err(|e| format!("Error al obtener familia con dirección: {}", e))
 }
 
 #[tauri::command]
-pub fn create_hermano_con_familia_cmd(db: State<DbConnection>, data: HermanoConFamiliaData) -> Result<i32, String> {
+pub fn create_hermano_con_familia_cmd(
+    db: State<DbConnection>,
+    data: HermanoConFamiliaData,
+) -> Result<i32, String> {
     let nueva_familia_nombre = data.nueva_familia_nombre.clone();
     let hermano = data.hermano;
 
@@ -245,7 +264,12 @@ pub fn create_hermano_con_familia_cmd(db: State<DbConnection>, data: HermanoConF
 
         match create_familia(&db, &nueva_familia) {
             Ok(familia_id) => Some(familia_id),
-            Err(e) => return Err(format!("Error al crear familia '{}': {}", nombre_familia, e)),
+            Err(e) => {
+                return Err(format!(
+                    "Error al crear familia '{}': {}",
+                    nombre_familia, e
+                ))
+            }
         }
     } else {
         hermano.familia_id
@@ -269,7 +293,10 @@ pub fn create_hermano_con_familia_cmd(db: State<DbConnection>, data: HermanoConF
         };
 
         if let Err(e) = update_familia(&db, familia_id_nueva, &familia_actualizada) {
-            eprintln!("Advertencia: No se pudo establecer la dirección principal de la familia: {}", e);
+            eprintln!(
+                "Advertencia: No se pudo establecer la dirección principal de la familia: {}",
+                e
+            );
         }
     }
 
