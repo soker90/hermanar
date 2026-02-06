@@ -1,0 +1,50 @@
+name: Tests Backend
+
+on:
+    push:
+        branches: [main]
+        paths:
+            - 'src-tauri/**'
+            - 'package.json'
+            - '.github/workflows/test.yml'
+    pull_request:
+        branches: [main]
+        paths:
+            - 'src-tauri/**'
+            - 'package.json'
+            - '.github/workflows/test.yml'
+
+jobs:
+    test:
+        name: Rust Backend Tests
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Install Rust
+              uses: dtolnay/rust-toolchain@stable
+              with:
+                  toolchain: stable
+
+            - name: Cache Rust dependencies
+              uses: Swatinem/rust-cache@v2
+              with:
+                  workspaces: 'src-tauri'
+
+            - name: Run backend tests
+              run: npm run test:ci
+              working-directory: ${{ github.workspace }}
+
+            - name: Test summary
+              if: always()
+              run: |
+                  echo "## ✅ Tests Backend - Resultado" >> $GITHUB_STEP_SUMMARY
+                  echo "Tests ejecutados en: \`src-tauri/\`" >> $GITHUB_STEP_SUMMARY
+                  echo "- Comando: \`npm run test:ci\`" >> $GITHUB_STEP_SUMMARY
+                  echo "- Estado: Completado" >> $GITHUB_STEP_SUMMARY
+                  echo "" >> $GITHUB_STEP_SUMMARY
+                  echo "**Para mas detalles:**" >> $GITHUB_STEP_SUMMARY
+                  echo "- Lee: [TESTING_STATUS.md](https://github.com/${{ github.repository }}/blob/${{ github.ref }}/TESTING_STATUS.md)" >> $GITHUB_STEP_SUMMARY
+                  echo "- Comandos locales: \`npm run test\`" >> $GITHUB_STEP_SUMMARY

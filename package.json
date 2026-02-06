@@ -11,7 +11,12 @@
         "tauri": "tauri",
         "prepare": "husky",
         "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
-        "format": "prettier --write ."
+        "format": "prettier --write .",
+        "test": "npm run test:backend",
+        "test:backend": "cd src-tauri && cargo test --lib",
+        "test:backend:release": "cd src-tauri && cargo test --lib --release",
+        "test:backend:watch": "cd src-tauri && cargo test --lib -- --nocapture",
+        "test:ci": "cd src-tauri && cargo test --lib --release 2>&1"
     },
     "lint-staged": {
         "*.{js,jsx,ts,tsx}": [

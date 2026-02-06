@@ -3,6 +3,9 @@ mod commands;
 mod recibos;
 mod backup;
 
+#[cfg(test)]
+mod tests;
+
 use commands::*;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
