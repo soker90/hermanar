@@ -30,7 +30,7 @@ jobs:
               run: |
                   VERSION="${PACKAGE_VERSION}"
                   # Extract the section for this version from CHANGELOG.md
-                  CHANGELOG_CONTENT=$(awk "/## \[${VERSION}\]/,/## \[/" CHANGELOG.md | sed '1d;$d')
+                  CHANGELOG_CONTENT=$(awk "/## \[${VERSION}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
                   # Save to output for use in other steps
                   echo "notes<<EOF" >> $GITHUB_OUTPUT
                   echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
@@ -186,7 +186,7 @@ jobs:
               run: |
                   VERSION="${{ env.PACKAGE_VERSION }}"
                   # Extract notes for current version from CHANGELOG.md
-                  NOTES=$(awk "/## \[${VERSION}\]/,/## \[/" CHANGELOG.md | sed '1d;$d' | sed '/^$/d')
+                  NOTES=$(awk "/## \[${VERSION}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
                   # Save to file to preserve formatting
                   echo "$NOTES" > release_notes.txt
 
