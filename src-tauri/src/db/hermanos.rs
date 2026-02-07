@@ -163,8 +163,7 @@ pub fn create_hermano(db: &DbConnection, hermano: &Hermano) -> Result<i32, anyho
 
     // Generar número de hermano único si está vacío (5 dígitos numéricos)
     let numero_hermano = if hermano.numero_hermano.trim().is_empty() {
-        let count: i32 =
-            conn.query_row("SELECT COUNT(*) FROM hermanos", [], |row| row.get(0))?;
+        let count: i32 = conn.query_row("SELECT COUNT(*) FROM hermanos", [], |row| row.get(0))?;
         format!("{:05}", count + 1)
     } else {
         // Validar que sea numérico de 5 dígitos

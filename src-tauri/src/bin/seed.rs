@@ -144,7 +144,8 @@ fn main() -> Result<()> {
         "Ramos",
     ];
 
-    let localidades = ["Alcázar de San Juan",
+    let localidades = [
+        "Alcázar de San Juan",
         "Madrid",
         "Toledo",
         "Ciudad Real",
@@ -153,11 +154,13 @@ fn main() -> Result<()> {
         "Valdepeñas",
         "Puertollano",
         "Daimiel",
-        "La Solana"];
+        "La Solana",
+    ];
 
     let provincias = ["Ciudad Real", "Madrid", "Toledo", "Albacete", "Cuenca"];
 
-    let calles = ["Calle Mayor",
+    let calles = [
+        "Calle Mayor",
         "Calle Real",
         "Avenida de la Constitución",
         "Plaza del Ayuntamiento",
@@ -168,7 +171,8 @@ fn main() -> Result<()> {
         "Avenida de España",
         "Calle del Molino",
         "Calle de la Paz",
-        "Plaza de España"];
+        "Plaza de España",
+    ];
 
     let metodos_pago = ["Efectivo", "Transferencia", "Tarjeta"];
 

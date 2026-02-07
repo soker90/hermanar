@@ -188,9 +188,8 @@ pub fn generar_cuotas_anio(
         .map_err(|_| anyhow::anyhow!("Error de base de datos"))?;
 
     let mut stmt = conn.prepare("SELECT id FROM hermanos WHERE activo = 1")?;
-    let hermano_ids: Result<Vec<i32>, _> = stmt
-        .query_map([], |row| row.get::<_, i32>(0))?
-        .collect();
+    let hermano_ids: Result<Vec<i32>, _> =
+        stmt.query_map([], |row| row.get::<_, i32>(0))?.collect();
 
     let hermano_ids = hermano_ids?;
     let mut creadas = 0;

@@ -84,7 +84,6 @@ pub struct Familia {
     pub updated_at: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Cuota {
     pub id: Option<i32>,
