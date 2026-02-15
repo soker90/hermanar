@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.1] - 2026-02-15
+
+### Corregido
+
+- Correciones en el sistema de actualización automática
+
 ## [0.6.0] - 2026-02-05
 
 ### Añadido

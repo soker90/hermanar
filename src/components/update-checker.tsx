@@ -34,26 +34,44 @@ export function UpdateChecker() {
             const update = await check()
 
             if (!update?.available) {
+                setIsDownloading(false)
                 return
             }
 
+            let contentLength = 0
+            let downloaded = 0
+
             await update.downloadAndInstall((progress) => {
                 if (progress.event === 'Started') {
+                    contentLength = progress.data.contentLength || 0
+                    downloaded = 0
                     setDownloadProgress(0)
                 } else if (progress.event === 'Progress') {
-                    const total = progress.data.chunkLength
-                    // Estimación simple del progreso basada en chunks
-                    setDownloadProgress(Math.min(total, 100))
+                    downloaded += progress.data.chunkLength
+                    if (contentLength > 0) {
+                        const percent = Math.round(
+                            (downloaded / contentLength) * 100
+                        )
+                        setDownloadProgress(Math.min(percent, 100))
+                    }
                 } else if (progress.event === 'Finished') {
                     setDownloadProgress(100)
                 }
             })
 
-            // Reiniciar la aplicación
-            await relaunch()
+            console.log('Update downloaded and installed successfully')
+
+            // Reiniciar la aplicación después de una breve pausa
+            setTimeout(async () => {
+                await relaunch()
+            }, 1000)
         } catch (error) {
             console.error('Error downloading update:', error)
+            alert(
+                'Error al descargar la actualización. Por favor, inténtalo de nuevo.'
+            )
             setIsDownloading(false)
+            setDownloadProgress(0)
         }
     }
 
