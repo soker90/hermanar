@@ -7,13 +7,38 @@ import {
     Upload,
     FolderOpen,
     AlertCircle,
-    Trash2
+    Trash2,
+    FolderCog,
+    RotateCcw,
+    CheckCircle2
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { useToastContext } from '@/contexts/toast-context'
+
+interface DataDirConfig {
+    current_dir: string
+    is_custom: boolean
+    default_dir: string
+}
+
+interface CheckDataDirResult {
+    db_exists_in_new_dir: boolean
+}
+
+// Estado del flujo de cambio de ruta
+type ChangeStep =
+    | 'idle'
+    | 'conflict' // hay BD en el nuevo dir → preguntar cuál usar
+    | 'confirm' // confirmación final antes de aplicar
+
+interface PendingChange {
+    new_dir: string
+    // use_existing_db: undefined = sin conflicto, true = usar la existente, false = usar la actual
+    use_existing_db?: boolean
+}
 
 export function Component() {
     const toast = useToastContext()
@@ -21,6 +46,30 @@ export function Component() {
     const [importLoading, setImportLoading] = useState(false)
     const [showDeleteModal, setShowDeleteModal] = useState(false)
     const [deleteLoading, setDeleteLoading] = useState(false)
+
+    // Estado de la configuración de ruta de datos
+    const [dataDirConfig, setDataDirConfig] = useState<DataDirConfig | null>(
+        null
+    )
+    const [changeStep, setChangeStep] = useState<ChangeStep>('idle')
+    const [pendingChange, setPendingChange] = useState<PendingChange | null>(
+        null
+    )
+    const [applyingChange, setApplyingChange] = useState(false)
+    const [resetLoading, setResetLoading] = useState(false)
+
+    useEffect(() => {
+        loadDataDirConfig()
+    }, [])
+
+    const loadDataDirConfig = async () => {
+        try {
+            const cfg = await invoke<DataDirConfig>('get_data_dir_config_cmd')
+            setDataDirConfig(cfg)
+        } catch (error) {
+            console.error('Error al cargar configuración de ruta:', error)
+        }
+    }
 
     const handleExportBackup = async () => {
         setExportLoading(true)
@@ -37,20 +86,12 @@ export function Component() {
 
     const handleImportBackup = async () => {
         try {
-            // Abrir diálogo para seleccionar archivo
             const selected = await open({
                 multiple: false,
-                filters: [
-                    {
-                        name: 'Backup',
-                        extensions: ['zst']
-                    }
-                ]
+                filters: [{ name: 'Backup', extensions: ['zst'] }]
             })
 
-            if (!selected) {
-                return
-            }
+            if (!selected) return
 
             setImportLoading(true)
             const result = await invoke<string>('importar_backup_cmd', {
@@ -59,15 +100,12 @@ export function Component() {
 
             toast.success(result)
 
-            // Comportamiento diferente según el entorno
             if (import.meta.env.DEV) {
-                // En desarrollo, no reiniciar automáticamente
                 setImportLoading(false)
                 toast.info(
                     'Reinicia manualmente la aplicación (Ctrl+C y pnpm dev) para aplicar los cambios'
                 )
             } else {
-                // En producción, reiniciar automáticamente después de 2 segundos
                 setTimeout(async () => {
                     await relaunch()
                 }, 2000)
@@ -95,13 +133,11 @@ export function Component() {
             toast.success(result)
             setShowDeleteModal(false)
 
-            // Comportamiento diferente según el entorno
             if (import.meta.env.DEV) {
                 toast.info(
                     'Reinicia manualmente la aplicación (Ctrl+C y pnpm dev) para crear una nueva base de datos'
                 )
             } else {
-                // En producción, reiniciar automáticamente después de 2 segundos
                 setTimeout(async () => {
                     await relaunch()
                 }, 2000)
@@ -112,6 +148,181 @@ export function Component() {
         } finally {
             setDeleteLoading(false)
         }
+    }
+
+    // ─── Gestión de cambio de ruta de datos ──────────────────────────────────
+
+    const handleSelectNewDataDir = async () => {
+        try {
+            const selected = await open({
+                directory: true,
+                multiple: false,
+                title: 'Seleccionar carpeta de datos'
+            })
+
+            if (!selected) return
+
+            const newDir = selected as string
+
+            // Comprobar si hay conflicto de BD
+            const check = await invoke<CheckDataDirResult>(
+                'check_new_data_dir_cmd',
+                {
+                    newDir
+                }
+            )
+
+            if (check.db_exists_in_new_dir) {
+                // Hay conflicto: preguntar al usuario qué BD usar
+                setPendingChange({ new_dir: newDir })
+                setChangeStep('conflict')
+            } else {
+                // Sin conflicto: ir directamente a confirmación
+                setPendingChange({
+                    new_dir: newDir,
+                    use_existing_db: undefined
+                })
+                setChangeStep('confirm')
+            }
+        } catch (error) {
+            console.error('Error al seleccionar carpeta:', error)
+            toast.error('Error al seleccionar la carpeta')
+        }
+    }
+
+    const handleConflictChoice = (useExisting: boolean) => {
+        if (!pendingChange) return
+        setPendingChange({ ...pendingChange, use_existing_db: useExisting })
+        setChangeStep('confirm')
+    }
+
+    const handleApplyChange = async () => {
+        if (!pendingChange) return
+        setApplyingChange(true)
+        try {
+            const result = await invoke<string>('apply_data_dir_change_cmd', {
+                newDir: pendingChange.new_dir,
+                useExistingDb:
+                    pendingChange.use_existing_db !== undefined
+                        ? pendingChange.use_existing_db
+                        : null
+            })
+
+            toast.success(result)
+            setChangeStep('idle')
+            setPendingChange(null)
+
+            if (import.meta.env.DEV) {
+                toast.info(
+                    'Reinicia manualmente la aplicación (Ctrl+C y pnpm dev) para usar la nueva ruta'
+                )
+                setApplyingChange(false)
+                await loadDataDirConfig()
+            } else {
+                setTimeout(async () => {
+                    await relaunch()
+                }, 2000)
+            }
+        } catch (error) {
+            console.error('Error al aplicar cambio de ruta:', error)
+            toast.error(`Error al cambiar la ruta: ${error}`)
+            setApplyingChange(false)
+        }
+    }
+
+    const handleCancelChange = () => {
+        setChangeStep('idle')
+        setPendingChange(null)
+    }
+
+    const handleResetDataDir = async () => {
+        setResetLoading(true)
+        try {
+            const result = await invoke<string>('reset_data_dir_cmd')
+            toast.success(result)
+
+            if (import.meta.env.DEV) {
+                toast.info(
+                    'Reinicia manualmente la aplicación (Ctrl+C y pnpm dev) para volver a la ruta por defecto'
+                )
+                setResetLoading(false)
+                await loadDataDirConfig()
+            } else {
+                setTimeout(async () => {
+                    await relaunch()
+                }, 2000)
+            }
+        } catch (error) {
+            console.error('Error al restablecer ruta:', error)
+            toast.error(`Error al restablecer la ruta: ${error}`)
+            setResetLoading(false)
+        }
+    }
+
+    // ─── Helpers de texto para el modal de confirmación ──────────────────────
+
+    const getConfirmTitle = () => {
+        if (!pendingChange) return ''
+        if (pendingChange.use_existing_db === undefined) {
+            return 'Confirmar cambio de ruta de datos'
+        }
+        return pendingChange.use_existing_db
+            ? 'Usar base de datos existente'
+            : 'Usar base de datos actual'
+    }
+
+    const getConfirmDescription = () => {
+        if (!pendingChange) return null
+        const { new_dir, use_existing_db } = pendingChange
+
+        if (use_existing_db === undefined) {
+            return (
+                <ul className="text-sm text-gray-700 space-y-1 ml-4 list-disc">
+                    <li>
+                        La base de datos actual se copiará a{' '}
+                        <span className="font-mono text-xs bg-gray-100 px-1 rounded">
+                            {new_dir}
+                        </span>
+                    </li>
+                    <li>La ruta por defecto no se modificará</li>
+                    <li>La aplicación se reiniciará automáticamente</li>
+                </ul>
+            )
+        }
+
+        if (use_existing_db) {
+            return (
+                <ul className="text-sm text-gray-700 space-y-1 ml-4 list-disc">
+                    <li>
+                        Se usará la base de datos que ya existe en{' '}
+                        <span className="font-mono text-xs bg-gray-100 px-1 rounded">
+                            {new_dir}
+                        </span>
+                    </li>
+                    <li>
+                        Se creará una copia de seguridad (<code>.zst</code>) de
+                        la base de datos actual en tu carpeta de Descargas
+                    </li>
+                    <li>La aplicación se reiniciará automáticamente</li>
+                </ul>
+            )
+        }
+
+        return (
+            <ul className="text-sm text-gray-700 space-y-1 ml-4 list-disc">
+                <li>
+                    Se usará tu base de datos actual, que se copiará a{' '}
+                    <span className="font-mono text-xs bg-gray-100 px-1 rounded">
+                        {new_dir}
+                    </span>
+                </li>
+                <li>
+                    La base de datos que ya existía en esa carpeta se renombrará
+                    a <code>hermanar.db.backup</code>
+                </li>
+                <li>La aplicación se reiniciará automáticamente</li>
+            </ul>
+        )
     }
 
     return (
@@ -129,8 +340,6 @@ export function Component() {
                                 Por favor espera mientras se restauran los
                                 datos...
                             </p>
-
-                            {/* Barra de progreso indeterminada */}
                             <div className="w-full bg-gray-200 rounded-full h-3 mb-4 overflow-hidden">
                                 <div
                                     className="h-full bg-linear-to-r from-indigo-400 via-indigo-600 to-indigo-400 rounded-full"
@@ -141,14 +350,42 @@ export function Component() {
                                     }}
                                 />
                             </div>
-
                             <style>{`
                                 @keyframes slideProgress {
                                     0% { transform: translateX(-100%); }
                                     100% { transform: translateX(300%); }
                                 }
                             `}</style>
+                            <p className="text-sm text-gray-500">
+                                No cierres ni refresques la aplicación
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
 
+            {/* Overlay de carga durante cambio de ruta */}
+            {applyingChange && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+                    <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl">
+                        <div className="text-center">
+                            <FolderCog className="w-16 h-16 mx-auto mb-4 text-indigo-600 animate-pulse" />
+                            <h2 className="text-2xl font-bold mb-2">
+                                Cambiando Ruta de Datos
+                            </h2>
+                            <p className="text-gray-600 mb-6">
+                                Copiando archivos y guardando configuración...
+                            </p>
+                            <div className="w-full bg-gray-200 rounded-full h-3 mb-4 overflow-hidden">
+                                <div
+                                    className="h-full bg-linear-to-r from-indigo-400 via-indigo-600 to-indigo-400 rounded-full"
+                                    style={{
+                                        width: '50%',
+                                        animation:
+                                            'slideProgress 1.5s ease-in-out infinite'
+                                    }}
+                                />
+                            </div>
                             <p className="text-sm text-gray-500">
                                 No cierres ni refresques la aplicación
                             </p>
@@ -294,6 +531,99 @@ export function Component() {
                 </Card>
             </div>
 
+            {/* ─── Ruta de Datos ─────────────────────────────────────────────── */}
+            <Card className="mt-6 p-6">
+                <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-1">
+                        <FolderCog className="w-6 h-6 text-indigo-600" />
+                        <h2 className="text-xl font-semibold">Ruta de Datos</h2>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                        Directorio donde se almacenan la base de datos y los
+                        archivos de configuración de la aplicación.
+                    </p>
+                </div>
+
+                {dataDirConfig ? (
+                    <div className="space-y-4">
+                        {/* Ruta actual */}
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                            <div className="flex items-center gap-2 mb-1">
+                                {dataDirConfig.is_custom ? (
+                                    <span className="inline-flex items-center gap-1 text-xs font-medium bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                                        <CheckCircle2 className="w-3 h-3" />
+                                        Personalizada
+                                    </span>
+                                ) : (
+                                    <span className="inline-flex items-center gap-1 text-xs font-medium bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                                        Por defecto
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-sm font-mono text-gray-800 break-all">
+                                {dataDirConfig.current_dir}
+                            </p>
+                            {dataDirConfig.is_custom && (
+                                <p className="text-xs text-gray-500 mt-2">
+                                    Ruta por defecto:{' '}
+                                    <span className="font-mono">
+                                        {dataDirConfig.default_dir}
+                                    </span>
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Acciones */}
+                        <div className="flex flex-wrap gap-2">
+                            <Button
+                                onClick={handleSelectNewDataDir}
+                                variant="outline"
+                                className="border-indigo-600 text-indigo-600 hover:bg-indigo-50"
+                            >
+                                <FolderCog className="w-4 h-4 mr-2" />
+                                Cambiar Ruta
+                            </Button>
+
+                            {dataDirConfig.is_custom && (
+                                <Button
+                                    onClick={handleResetDataDir}
+                                    disabled={resetLoading}
+                                    variant="outline"
+                                    className="border-gray-500 text-gray-600 hover:bg-gray-100"
+                                >
+                                    <RotateCcw className="w-4 h-4 mr-2" />
+                                    {resetLoading
+                                        ? 'Restableciendo...'
+                                        : 'Restablecer por defecto'}
+                                </Button>
+                            )}
+                        </div>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <ul className="text-sm text-blue-700 space-y-1 ml-4 list-disc">
+                                <li>
+                                    La configuración de la ruta siempre se
+                                    guarda en el directorio por defecto del
+                                    sistema
+                                </li>
+                                <li>
+                                    Los backups exportados manualmente siempre
+                                    van a tu carpeta de Descargas
+                                </li>
+                                <li>
+                                    Cambiar la ruta requiere reiniciar la
+                                    aplicación
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex justify-center py-6">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600" />
+                    </div>
+                )}
+            </Card>
+
             {/* Borrar Base de Datos */}
             <Card className="mt-6 p-6 border-red-200 bg-red-50">
                 <div className="flex items-start justify-between">
@@ -339,7 +669,7 @@ export function Component() {
                 <div className="space-y-4">
                     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
                         <p className="text-blue-800 font-semibold mb-1">
-                            💾 Backup Automático
+                            Backup Automático
                         </p>
                         <p className="text-sm text-blue-700">
                             Antes de borrar, se creará automáticamente una copia
@@ -349,7 +679,7 @@ export function Component() {
 
                     <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                         <p className="text-red-800 font-semibold mb-2">
-                            ⚠️ Esta acción es irreversible
+                            Esta acción es irreversible
                         </p>
                         <p className="text-sm text-red-700">
                             Se eliminarán permanentemente:
@@ -388,6 +718,117 @@ export function Component() {
                                     Sí, Borrar Todo
                                 </>
                             )}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* ─── Modal de conflicto de BD ─────────────────────────────────── */}
+            <Modal
+                isOpen={changeStep === 'conflict'}
+                onClose={handleCancelChange}
+                title="Ya existe una base de datos en esa carpeta"
+            >
+                <div className="space-y-4">
+                    <p className="text-gray-700">
+                        Se ha encontrado una base de datos existente en la
+                        carpeta seleccionada. ¿Cuál deseas usar?
+                    </p>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-sm text-amber-800">
+                            Se creará una copia de seguridad de la base de datos
+                            que <strong>no</strong> vayas a usar antes de
+                            continuar.
+                        </p>
+                    </div>
+
+                    {pendingChange && (
+                        <div className="text-xs text-gray-500 font-mono bg-gray-50 rounded p-2 break-all">
+                            Carpeta seleccionada: {pendingChange.new_dir}
+                        </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        {/* Opción A: usar la BD actual */}
+                        <button
+                            onClick={() => handleConflictChoice(false)}
+                            className="text-left border-2 border-indigo-200 hover:border-indigo-500 rounded-lg p-4 transition-colors group"
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <Database className="w-5 h-5 text-indigo-600" />
+                                <span className="font-semibold text-indigo-700">
+                                    Base de datos actual
+                                </span>
+                            </div>
+                            <p className="text-xs text-gray-600">
+                                La base de datos que estás usando ahora. La
+                                existente en la nueva carpeta se renombrará a{' '}
+                                <code>hermanar.db.backup</code>.
+                            </p>
+                        </button>
+
+                        {/* Opción B: usar la BD existente en el nuevo dir */}
+                        <button
+                            onClick={() => handleConflictChoice(true)}
+                            className="text-left border-2 border-green-200 hover:border-green-500 rounded-lg p-4 transition-colors group"
+                        >
+                            <div className="flex items-center gap-2 mb-2">
+                                <FolderOpen className="w-5 h-5 text-green-600" />
+                                <span className="font-semibold text-green-700">
+                                    Base de datos existente
+                                </span>
+                            </div>
+                            <p className="text-xs text-gray-600">
+                                La que ya existe en la carpeta seleccionada. Se
+                                guardará un backup <code>.zst</code> de la
+                                actual en tu carpeta de Descargas.
+                            </p>
+                        </button>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                        <Button onClick={handleCancelChange} variant="outline">
+                            Cancelar
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* ─── Modal de confirmación final ──────────────────────────────── */}
+            <Modal
+                isOpen={changeStep === 'confirm'}
+                onClose={handleCancelChange}
+                title={getConfirmTitle()}
+            >
+                <div className="space-y-4">
+                    <p className="text-gray-700 font-medium">
+                        Resumen de acciones:
+                    </p>
+
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        {getConfirmDescription()}
+                    </div>
+
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-sm text-amber-800">
+                            La aplicación se reiniciará al finalizar. No cierres
+                            la ventana mientras se realiza el cambio.
+                        </p>
+                    </div>
+
+                    <div className="flex gap-3 justify-end pt-2">
+                        <Button onClick={handleCancelChange} variant="outline">
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleApplyChange}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                        >
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                            Confirmar y cambiar
                         </Button>
                     </div>
                 </div>

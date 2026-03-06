@@ -113,12 +113,8 @@ pub type DbConnection = Arc<Mutex<Connection>>;
 pub fn init_database() -> Result<DbConnection, anyhow::Error> {
     println!("Iniciando conexión a la base de datos...");
 
-    // Usar el directorio de datos de la aplicación
-    let app_data_dir = std::env::var("APPDATA")
-        .or_else(|_| std::env::var("HOME").map(|home| format!("{}/.local/share", home)))
-        .unwrap_or_else(|_| ".".to_string());
-
-    let db_dir = format!("{}/hermanar", app_data_dir);
+    // Obtener el directorio de datos efectivo (personalizado o por defecto)
+    let db_dir = crate::config::get_effective_data_dir();
     std::fs::create_dir_all(&db_dir).context("No se pudo crear el directorio de datos")?;
 
     let db_path = format!("{}/hermanar.db", db_dir);

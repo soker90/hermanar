@@ -1,3 +1,7 @@
+use crate::config::{
+    check_new_data_dir, get_data_dir_config, save_app_config, AppConfig, CheckDataDirResult,
+    DataDirConfig,
+};
 use crate::db::{
     create_cuota, create_familia, create_hermano, delete_cuota, delete_familia, delete_hermano,
     generar_cuotas_anio, get_all_cuotas, get_all_familias, get_all_hermanos, get_cuotas_by_hermano,
@@ -301,4 +305,130 @@ pub fn create_hermano_con_familia_cmd(
     }
 
     Ok(hermano_id)
+}
+
+// ─── Comandos de configuración de ruta de datos ───────────────────────────────
+
+/// Devuelve la configuración de ruta de datos actual (directorio efectivo, si es custom, y el default)
+#[tauri::command]
+pub fn get_data_dir_config_cmd() -> DataDirConfig {
+    get_data_dir_config()
+}
+
+/// Comprueba si ya existe una BD en el directorio destino (sin modificar nada)
+#[tauri::command]
+pub fn check_new_data_dir_cmd(new_dir: String) -> CheckDataDirResult {
+    check_new_data_dir(&new_dir)
+}
+
+/// Aplica el cambio de directorio de datos.
+///
+/// - Si `use_existing_db` es `None`: sin conflicto → copia la BD actual al nuevo dir.
+/// - Si `use_existing_db` es `Some(true)`: usar BD existente en el nuevo dir;
+///   hace backup zst de la BD actual a Descargas antes de cambiar.
+/// - Si `use_existing_db` es `Some(false)`: usar BD actual;
+///   renombra la existente en el nuevo dir a .backup y copia la actual.
+#[tauri::command]
+pub fn apply_data_dir_change_cmd(
+    new_dir: String,
+    use_existing_db: Option<bool>,
+) -> Result<String, String> {
+    use chrono::Local;
+    use std::fs;
+    use std::path::PathBuf;
+
+    let new_dir_path = PathBuf::from(&new_dir);
+
+    // Crear el directorio destino si no existe
+    fs::create_dir_all(&new_dir_path)
+        .map_err(|e| format!("No se pudo crear el directorio destino: {}", e))?;
+
+    let current_dir = crate::config::get_effective_data_dir();
+    let current_db = PathBuf::from(&current_dir).join("hermanar.db");
+    let current_backup = PathBuf::from(&current_dir).join("hermanar.db.backup");
+    let new_db = new_dir_path.join("hermanar.db");
+    let new_backup = new_dir_path.join("hermanar.db.backup");
+
+    match use_existing_db {
+        None => {
+            // Sin conflicto: copiar la BD actual al nuevo directorio
+            if current_db.exists() {
+                fs::copy(&current_db, &new_db)
+                    .map_err(|e| format!("No se pudo copiar la base de datos: {}", e))?;
+            }
+            if current_backup.exists() {
+                fs::copy(&current_backup, &new_backup)
+                    .map_err(|e| format!("No se pudo copiar el backup automático: {}", e))?;
+            }
+        }
+        Some(true) => {
+            // Usar la BD existente en el nuevo dir.
+            // Hacer backup zst a Descargas de la BD actual.
+            if current_db.exists() {
+                let db_data = fs::read(&current_db)
+                    .map_err(|e| format!("No se pudo leer la base de datos actual: {}", e))?;
+                let compressed = zstd::encode_all(&db_data[..], 3)
+                    .map_err(|e| format!("Error al comprimir backup: {}", e))?;
+                let download_dir = dirs::download_dir()
+                    .ok_or_else(|| "No se pudo obtener el directorio de descargas".to_string())?;
+                let now = Local::now();
+                let backup_filename = format!(
+                    "hermanar-antes-cambio-ruta-{}.zst",
+                    now.format("%Y-%m-%d-%H-%M-%S")
+                );
+                let backup_dest = download_dir.join(&backup_filename);
+                fs::write(&backup_dest, compressed)
+                    .map_err(|e| format!("No se pudo guardar el backup: {}", e))?;
+                println!(
+                    "Backup de BD actual guardado en: {}",
+                    backup_dest.to_string_lossy()
+                );
+            }
+            // No copiamos nada: la BD destino ya está en su sitio.
+        }
+        Some(false) => {
+            // Usar la BD actual. La BD existente en el nuevo dir se renombra a .backup.
+            if new_db.exists() {
+                fs::rename(&new_db, &new_backup)
+                    .map_err(|e| format!("No se pudo hacer backup de la BD existente: {}", e))?;
+            }
+            // Copiar la BD actual al nuevo directorio
+            if current_db.exists() {
+                fs::copy(&current_db, &new_db)
+                    .map_err(|e| format!("No se pudo copiar la base de datos: {}", e))?;
+            }
+            if current_backup.exists() && !new_backup.exists() {
+                fs::copy(&current_backup, &new_backup)
+                    .map_err(|e| format!("No se pudo copiar el backup automático: {}", e))?;
+            }
+        }
+    }
+
+    // Guardar la nueva ruta en config.json
+    let new_config = AppConfig {
+        custom_data_dir: Some(new_dir.clone()),
+    };
+    save_app_config(&new_config)
+        .map_err(|e| format!("No se pudo guardar la configuración: {}", e))?;
+
+    Ok(format!(
+        "Ruta de datos cambiada a: {}. Reinicia la aplicación para aplicar los cambios.",
+        new_dir
+    ))
+}
+
+/// Restablece el directorio de datos al valor por defecto del sistema
+#[tauri::command]
+pub fn reset_data_dir_cmd() -> Result<String, String> {
+    let new_config = AppConfig {
+        custom_data_dir: None,
+    };
+    save_app_config(&new_config)
+        .map_err(|e| format!("No se pudo guardar la configuración: {}", e))?;
+
+    let default_dir = crate::config::get_default_data_dir();
+    Ok(format!(
+        "Ruta de datos restablecida al directorio por defecto: {}. Reinicia la aplicación para aplicar los cambios.",
+        default_dir
+    ))
 }

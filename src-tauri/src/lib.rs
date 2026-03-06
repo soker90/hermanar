@@ -1,5 +1,6 @@
 mod backup;
 mod commands;
+mod config;
 mod db;
 mod recibos;
 
@@ -70,6 +71,11 @@ pub fn run() {
             backup::importar_backup_cmd,
             backup::borrar_base_datos_cmd,
             backup::abrir_carpeta_descargas_cmd,
+            // Comandos de configuración de ruta de datos
+            get_data_dir_config_cmd,
+            check_new_data_dir_cmd,
+            apply_data_dir_change_cmd,
+            reset_data_dir_cmd,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
