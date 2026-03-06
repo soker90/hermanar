@@ -29,7 +29,7 @@ anyhow = "1.0"
 thiserror = "2.0"
 printpdf = { version = "0.7", features = ["image"] }
 image = "0.24"
-dirs = "5.0"
+dirs = "6.0"
 zstd = "0.13"
 
 [dev-dependencies]
