@@ -4,15 +4,7 @@
 
 ### Añadido
 
-- Configuración de ruta personalizada para la base de datos y archivos de la aplicación
-- Detección automática de conflicto cuando ya existe una base de datos en la carpeta destino: el usuario puede elegir qué base de datos conservar
-- Copia de seguridad automática de la base de datos descartada antes de cualquier cambio de ruta
-- Opción para restablecer la ruta de datos al directorio por defecto del sistema
-- Nueva tarjeta "Ruta de Datos" en la sección de Copia de Seguridad con indicador visual de ruta personalizada o por defecto
-
-### Mejorado
-
-- La configuración de ruta siempre se guarda en el directorio por defecto del sistema, garantizando que la aplicación pueda localizarla al arrancar independientemente de la ruta personalizada
+- La ruta de la base de datos ahora es configurable
 
 ## [0.6.1] - 2026-02-15
 
